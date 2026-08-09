@@ -115,8 +115,9 @@ class AETHERModel(nn.Module):
         for name, head in self.task_heads.items():
             outputs[name] = head(decoded)
 
-        # Always include alpha maps for interpretability
+        # Always include alpha maps and f_shared for interpretability/evaluation
         outputs["alpha_maps"] = fusion_out["alpha_maps"]
+        outputs["f_shared"] = f_shared
 
         # Include intermediates if requested
         if return_intermediates:
