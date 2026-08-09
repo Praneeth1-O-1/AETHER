@@ -1,0 +1,40 @@
+# ===========================================================================
+# AETHER — Model Configuration
+# ===========================================================================
+# All architectural hyperparameters are defined here.
+# Override per-dataset values (e.g. num_classes) via a separate dataset
+# config or CLI arguments rather than editing this file directly.
+# ===========================================================================
+
+model:
+  # ----- Optical Encoder (ConvNeXt-Tiny, Stage 3) -----
+  optical_encoder:
+    in_channels: 13            # Sentinel-2: 13 spectral bands
+    pretrained: true
+
+  # ----- SAR Encoder (ResNet18, Layer 3) -----
+  sar_encoder:
+    in_channels: 2             # Sentinel-1: VV + VH polarizations
+    pretrained: true
+
+  # ----- DEM Encoder (Lightweight CNN) -----
+  dem_encoder:
+    in_channels: 1             # Single elevation channel
+
+  # ----- CrossModalAlphaFusion -----
+  fusion:
+    feature_dim: 256           # Shared feature dimension across all encoders
+    num_heads: 8               # Multi-head attention heads
+    dropout: 0.1               # Dropout in attention layers
+    use_modality_embeddings: true
+    num_refinement_blocks: 1   # Single residual block for feature harmonization
+    use_se_refinement: false   # SE attention disabled by default for architectural simplicity
+
+  # ----- Decoder -----
+  decoder:
+    out_channels: 16           # Final decoder feature channels before task head
+
+  # ----- Task Heads -----
+  task_heads:
+    lulc:
+      num_classes: 10          # Dataset-dependent; override per dataset
