@@ -49,6 +49,12 @@ class AETHERModel(nn.Module):
         Progressive upsampling decoder.
     task_heads : nn.ModuleDict
         Named task-specific prediction heads.
+    modality_dropout_prob : float
+        Probability of zeroing out one randomly-chosen modality's encoded
+        features per training sample, before fusion. Regularizes against the
+        fusion collapsing onto whichever modality is cheapest to fit (e.g. a
+        static DEM) instead of learning genuine per-pixel complementary use
+        of all three. Only active in ``self.training`` mode.
     """
 
     def __init__(
@@ -59,6 +65,7 @@ class AETHERModel(nn.Module):
         fusion: CrossModalAlphaFusion,
         decoder: Decoder,
         task_heads: nn.ModuleDict,
+        modality_dropout_prob: float = 0.0,
     ) -> None:
         super().__init__()
         self.optical_encoder = optical_encoder
@@ -67,6 +74,24 @@ class AETHERModel(nn.Module):
         self.fusion = fusion
         self.decoder = decoder
         self.task_heads = task_heads
+        self.modality_dropout_prob = modality_dropout_prob
+
+    def _apply_modality_dropout(
+        self, f_optical: torch.Tensor, f_sar: torch.Tensor, f_dem: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Zero out one random modality per sample, for a random subset of the batch."""
+        if not self.training or self.modality_dropout_prob <= 0:
+            return f_optical, f_sar, f_dem
+
+        batch_size = f_optical.shape[0]
+        device = f_optical.device
+        drop = torch.rand(batch_size, device=device) < self.modality_dropout_prob
+        choice = torch.randint(0, 3, (batch_size,), device=device)
+
+        mask_o = (~(drop & (choice == 0))).float().view(batch_size, 1, 1, 1)
+        mask_s = (~(drop & (choice == 1))).float().view(batch_size, 1, 1, 1)
+        mask_d = (~(drop & (choice == 2))).float().view(batch_size, 1, 1, 1)
+        return f_optical * mask_o, f_sar * mask_s, f_dem * mask_d
 
     def forward(
         self,
@@ -99,6 +124,9 @@ class AETHERModel(nn.Module):
         f_optical = self.optical_encoder(optical)   # (B, 256, H/16, W/16)
         f_sar = self.sar_encoder(sar)               # (B, 256, H/16, W/16)
         f_dem = self.dem_encoder(dem)                # (B, 256, H/16, W/16)
+
+        # 1b. Modality dropout (training only) -- see class docstring.
+        f_optical, f_sar, f_dem = self._apply_modality_dropout(f_optical, f_sar, f_dem)
 
         # 2. Cross-modal fusion
         fusion_out = self.fusion(
@@ -223,6 +251,8 @@ class AETHERModel(nn.Module):
                     in_channels=model_cfg.decoder.out_channels,
                 )
 
+        modality_dropout_prob = float(model_cfg.get("modality_dropout_prob", 0.0))
+
         return cls(
             optical_encoder=optical_encoder,
             sar_encoder=sar_encoder,
@@ -230,4 +260,5 @@ class AETHERModel(nn.Module):
             fusion=fusion,
             decoder=decoder,
             task_heads=heads,
+            modality_dropout_prob=modality_dropout_prob,
         )
