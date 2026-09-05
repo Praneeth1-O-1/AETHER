@@ -96,7 +96,15 @@ def _read_stack(path: Path) -> tuple[np.ndarray, list[str]]:
 
 
 class AETHERTileDataset(Dataset):
-    """Loads (optical, sar, dem, lulc_target) tensors for a list of tile directories."""
+    """Loads (optical, sar, dem, lulc_target, road_target, building_target) tensors.
+
+    ``road`` and ``building_presence`` (unlike ``lulc``) have no nodata pixels
+    anywhere in the archive (checked across the dataset), so no ignore-index
+    handling is needed for them. ``building_presence`` is a continuous [0,1]
+    per-pixel building-coverage fraction, not a hard 0/1 label -- it's used
+    as-is as a soft target for ``BCEWithLogitsLoss``, which preserves partial
+    building-edge coverage instead of collapsing it to a hard threshold.
+    """
 
     def __init__(self, tile_dirs: list[Path], augment: bool = False):
         self.tile_dirs = tile_dirs
@@ -123,30 +131,33 @@ class AETHERTileDataset(Dataset):
 
         lab_arr, lab_names = _read_stack(tile_dir / "labels.tif")
         lulc = lab_arr[lab_names.index("lulc")]
-        target = np.where(np.isfinite(lulc), np.round(lulc), IGNORE_INDEX).astype(np.int64)
+        lulc_target = np.where(np.isfinite(lulc), np.round(lulc), IGNORE_INDEX).astype(np.int64)
+
+        road_target = lab_arr[lab_names.index("road")][None, ...].astype(np.float32)
+        building_target = lab_arr[lab_names.index("building_presence")][None, ...].astype(np.float32)
 
         if self.augment:
-            optical, sar, dem, target = self._augment(optical, sar, dem, target)
+            optical, sar, dem, lulc_target, road_target, building_target = self._augment(
+                optical, sar, dem, lulc_target, road_target, building_target
+            )
 
         return (
             torch.from_numpy(optical.copy()),
             torch.from_numpy(sar.copy()),
             torch.from_numpy(dem.copy()),
-            torch.from_numpy(target.copy()),
+            torch.from_numpy(lulc_target.copy()),
+            torch.from_numpy(road_target.copy()),
+            torch.from_numpy(building_target.copy()),
         )
 
     @staticmethod
-    def _augment(optical, sar, dem, target):
+    def _augment(optical, sar, dem, lulc_target, road_target, building_target):
+        arrays = [optical, sar, dem, lulc_target, road_target, building_target]
         if np.random.rand() < 0.5:
-            optical, sar, dem, target = (
-                np.flip(a, axis=-1) for a in (optical, sar, dem, target)
-            )
+            arrays = [np.flip(a, axis=-1) for a in arrays]
         if np.random.rand() < 0.5:
-            optical, sar, dem, target = (
-                np.flip(a, axis=-2) for a in (optical, sar, dem, target)
-            )
+            arrays = [np.flip(a, axis=-2) for a in arrays]
         k = int(np.random.randint(0, 4))
         if k:
-            optical, sar, dem = (np.rot90(a, k, axes=(-2, -1)) for a in (optical, sar, dem))
-            target = np.rot90(target, k, axes=(-2, -1))
-        return optical, sar, dem, target
+            arrays = [np.rot90(a, k, axes=(-2, -1)) for a in arrays]
+        return arrays

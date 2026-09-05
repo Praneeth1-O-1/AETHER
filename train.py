@@ -1,9 +1,12 @@
 """AETHER — Training entrypoint.
 
-Trains the full encoder -> CrossModalAlphaFusion -> decoder -> lulc head
-pipeline end-to-end on the AETHER_DATASET tile archive. Alpha maps are not
+Trains the full encoder -> CrossModalAlphaFusion -> decoder -> {lulc, road,
+building} heads jointly, end-to-end, on the AETHER_DATASET tile archive.
+Since all three heads share the same trunk (encoders + fusion + decoder),
+one combined loss (lulc CE + road BCE + building BCE) is backpropagated
+per batch -- there's no per-head training stage. Alpha maps are not
 supervised directly -- there is no ground-truth fusion ratio -- they emerge
-from backprop through the lulc classification loss.
+from backprop through this combined loss.
 
 Usage::
 
@@ -55,6 +58,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--no-pretrained", dest="pretrained", action="store_false", default=True,
                          help="Disable ImageNet-pretrained backbone weights (avoids a network fetch).")
 
+    parser.add_argument("--lulc_weight", type=float, default=1.0)
+    parser.add_argument("--road_weight", type=float, default=0.5,
+                         help="Lower than lulc by default -- road/building are auxiliary "
+                              "tasks here, kept from dominating the shared trunk's gradient.")
+    parser.add_argument("--building_weight", type=float, default=0.5)
+
     parser.add_argument("--checkpoint_dir", type=str, default="checkpoints")
     parser.add_argument("--device", type=str, default="auto")
     parser.add_argument("--resume", type=str, default=None,
@@ -103,33 +112,73 @@ def mean_iou(conf: torch.Tensor) -> float:
     return (intersection[valid] / union[valid]).mean().item()
 
 
+def binary_iou(logits: torch.Tensor, target: torch.Tensor, threshold: float = 0.5) -> float:
+    """IoU for a binary/soft-label head. `target` is thresholded too, so this
+    also works for building_presence's continuous [0,1] coverage fraction."""
+    pred = (torch.sigmoid(logits) > threshold).float()
+    target_bin = (target > threshold).float()
+    intersection = (pred * target_bin).sum().item()
+    union = ((pred + target_bin) > 0).float().sum().item()
+    return intersection / union if union > 0 else 0.0
+
+
+def compute_losses(outputs, lulc_target, road_target, building_target,
+                    criterion_lulc, criterion_road, criterion_building, args):
+    loss_lulc = criterion_lulc(outputs["lulc"], lulc_target)
+    loss_road = criterion_road(outputs["road"], road_target)
+    loss_building = criterion_building(outputs["building"], building_target)
+    total = args.lulc_weight * loss_lulc + args.road_weight * loss_road + args.building_weight * loss_building
+    return total, loss_lulc, loss_road, loss_building
+
+
 @torch.no_grad()
-def evaluate(model, loader, criterion, device):
+def evaluate(model, loader, criterion_lulc, criterion_road, criterion_building, args, device):
     model.eval()
-    total_loss, n_batches, correct, total = 0.0, 0, 0, 0
+    n_batches, correct, total = 0, 0, 0
+    total_loss = total_lulc = total_road = total_building = 0.0
     conf = torch.zeros(NUM_LULC_CLASSES, NUM_LULC_CLASSES, dtype=torch.int64)
     alpha_sum = torch.zeros(3)
+    road_iou_sum, building_iou_sum = 0.0, 0.0
 
-    for optical, sar, dem, target in loader:
-        optical, sar, dem, target = optical.to(device), sar.to(device), dem.to(device), target.to(device)
+    for optical, sar, dem, lulc_target, road_target, building_target in loader:
+        optical, sar, dem = optical.to(device), sar.to(device), dem.to(device)
+        lulc_target, road_target, building_target = (
+            lulc_target.to(device), road_target.to(device), building_target.to(device)
+        )
         outputs = model(optical, sar, dem)
-        loss = criterion(outputs["lulc"], target)
+        loss, loss_lulc, loss_road, loss_building = compute_losses(
+            outputs, lulc_target, road_target, building_target,
+            criterion_lulc, criterion_road, criterion_building, args,
+        )
 
         total_loss += loss.item()
+        total_lulc += loss_lulc.item()
+        total_road += loss_road.item()
+        total_building += loss_building.item()
         n_batches += 1
         alpha_sum += outputs["alpha_maps"].mean(dim=(0, 2, 3)).cpu()
+        road_iou_sum += binary_iou(outputs["road"], road_target)
+        building_iou_sum += binary_iou(outputs["building"], building_target)
 
         pred = outputs["lulc"].argmax(dim=1)
-        mask = target != IGNORE_INDEX
-        correct += (pred[mask] == target[mask]).sum().item()
+        mask = lulc_target != IGNORE_INDEX
+        correct += (pred[mask] == lulc_target[mask]).sum().item()
         total += mask.sum().item()
-        conf += confusion_matrix(pred[mask].cpu(), target[mask].cpu(), NUM_LULC_CLASSES)
+        conf += confusion_matrix(pred[mask].cpu(), lulc_target[mask].cpu(), NUM_LULC_CLASSES)
 
-    avg_loss = total_loss / max(n_batches, 1)
-    acc = correct / max(total, 1)
-    miou = mean_iou(conf)
-    avg_alpha = (alpha_sum / max(n_batches, 1)).tolist()
-    return avg_loss, acc, miou, avg_alpha
+    n = max(n_batches, 1)
+    metrics = {
+        "loss": total_loss / n,
+        "lulc_loss": total_lulc / n,
+        "road_loss": total_road / n,
+        "building_loss": total_building / n,
+        "acc": correct / max(total, 1),
+        "miou": mean_iou(conf),
+        "road_iou": road_iou_sum / n,
+        "building_iou": building_iou_sum / n,
+        "alpha": (alpha_sum / n).tolist(),
+    }
+    return metrics
 
 
 def main() -> None:
@@ -182,9 +231,15 @@ def main() -> None:
     scheduler = CosineAnnealingLR(optimizer, T_max=args.epochs)
 
     # ---- Loss ----
-    # ignore_index=255 for unlabeled pixels; class 0 (water) is a real class
-    # and must never be confused with "no label".
-    criterion = nn.CrossEntropyLoss(ignore_index=IGNORE_INDEX)
+    # ignore_index=255 for unlabeled lulc pixels; class 0 (water) is a real
+    # class and must never be confused with "no label". road/building have no
+    # nodata pixels anywhere in the archive, so no ignore_index needed there.
+    # pos_weight compensates for road/building being minority classes
+    # (dataset-wide positive fraction ~0.19 for road, ~0.15 mean coverage for
+    # building_presence) -- fixed constants from the archive, not per-batch.
+    criterion_lulc = nn.CrossEntropyLoss(ignore_index=IGNORE_INDEX)
+    criterion_road = nn.BCEWithLogitsLoss(pos_weight=torch.tensor(4.0, device=device))
+    criterion_building = nn.BCEWithLogitsLoss(pos_weight=torch.tensor(5.5, device=device))
 
     # ---- Resume ----
     start_epoch = 1
@@ -192,7 +247,14 @@ def main() -> None:
     if args.resume:
         logger.info(f"Resuming from checkpoint: {args.resume}")
         ckpt = torch.load(args.resume, map_location=device, weights_only=True)
-        model.load_state_dict(ckpt["model_state_dict"])
+        missing, unexpected = model.load_state_dict(ckpt["model_state_dict"], strict=False)
+        if missing or unexpected:
+            # Architecture changed since this checkpoint (e.g. new task heads added).
+            # New modules keep random init; optimizer/scheduler state below still
+            # matches the *old* param groups, so this is only safe for inspecting
+            # weights, not for a seamless training resume across an architecture change.
+            logger.warning(f"Resumed checkpoint doesn't match current architecture -- "
+                            f"missing: {missing}, unexpected: {unexpected}")
         optimizer.load_state_dict(ckpt["optimizer_state_dict"])
         scheduler.load_state_dict(ckpt["scheduler_state_dict"])
         best_val_loss = ckpt.get("best_val_loss", float("inf"))
@@ -202,41 +264,56 @@ def main() -> None:
     # ---- Training Loop ----
     for epoch in range(start_epoch, args.epochs + 1):
         model.train()
-        epoch_loss, n_batches = 0.0, 0
+        n_batches = 0
+        epoch_loss = epoch_lulc = epoch_road = epoch_building = 0.0
         alpha_sum = torch.zeros(3)
 
-        for optical, sar, dem, target in train_loader:
-            optical, sar, dem, target = optical.to(device), sar.to(device), dem.to(device), target.to(device)
+        for optical, sar, dem, lulc_target, road_target, building_target in train_loader:
+            optical, sar, dem = optical.to(device), sar.to(device), dem.to(device)
+            lulc_target, road_target, building_target = (
+                lulc_target.to(device), road_target.to(device), building_target.to(device)
+            )
 
             optimizer.zero_grad()
             outputs = model(optical, sar, dem)
-            loss = criterion(outputs["lulc"], target)
+            loss, loss_lulc, loss_road, loss_building = compute_losses(
+                outputs, lulc_target, road_target, building_target,
+                criterion_lulc, criterion_road, criterion_building, args,
+            )
             loss.backward()
             optimizer.step()
 
             epoch_loss += loss.item()
+            epoch_lulc += loss_lulc.item()
+            epoch_road += loss_road.item()
+            epoch_building += loss_building.item()
             alpha_sum += outputs["alpha_maps"].detach().mean(dim=(0, 2, 3)).cpu()
             n_batches += 1
 
         scheduler.step()
-        avg_loss = epoch_loss / max(n_batches, 1)
-        train_alpha = (alpha_sum / max(n_batches, 1)).tolist()
+        n = max(n_batches, 1)
+        avg_loss, avg_lulc, avg_road, avg_building = (
+            epoch_loss / n, epoch_lulc / n, epoch_road / n, epoch_building / n
+        )
+        train_alpha = (alpha_sum / n).tolist()
 
-        val_loss, val_acc, val_miou, val_alpha = evaluate(model, val_loader, criterion, device)
+        val = evaluate(model, val_loader, criterion_lulc, criterion_road, criterion_building, args, device)
 
         logger.info(
-            f"Epoch {epoch}/{args.epochs} | train_loss {avg_loss:.4f} | "
-            f"val_loss {val_loss:.4f} val_acc {val_acc:.3f} val_mIoU {val_miou:.3f} | "
+            f"Epoch {epoch}/{args.epochs} | "
+            f"train_loss {avg_loss:.4f} (lulc {avg_lulc:.4f} road {avg_road:.4f} building {avg_building:.4f}) | "
+            f"val_loss {val['loss']:.4f} val_acc {val['acc']:.3f} val_mIoU {val['miou']:.3f} "
+            f"val_road_iou {val['road_iou']:.3f} val_building_iou {val['building_iou']:.3f} | "
             f"alpha[O,S,D] train={[round(a, 3) for a in train_alpha]} "
-            f"val={[round(a, 3) for a in val_alpha]}"
+            f"val={[round(a, 3) for a in val['alpha']]}"
         )
 
         ckpt_dir = Path(args.checkpoint_dir)
         save_checkpoint(model, optimizer, scheduler, epoch, avg_loss, best_val_loss, ckpt_dir / "last.pt")
-        if val_loss < best_val_loss:
-            best_val_loss = val_loss
-            save_checkpoint(model, optimizer, scheduler, epoch, val_loss, best_val_loss, ckpt_dir / "best.pt")
-            logger.info(f"  New best val_loss {val_loss:.4f} -> saved {ckpt_dir / 'best.pt'}")
+        if val["loss"] < best_val_loss:
+            best_val_loss = val["loss"]
+            save_checkpoint(model, optimizer, scheduler, epoch, val["loss"], best_val_loss, ckpt_dir / "best.pt")
+            logger.info(f"  New best val_loss {val['loss']:.4f} -> saved {ckpt_dir / 'best.pt'}")
 
 
 if __name__ == "__main__":

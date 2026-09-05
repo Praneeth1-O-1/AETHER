@@ -116,7 +116,11 @@ def load_model(
 
     model = AETHERModel.build_from_dict(cfg.model)
     checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=True)
-    model.load_state_dict(checkpoint["model_state_dict"])
+    missing, unexpected = model.load_state_dict(checkpoint["model_state_dict"], strict=False)
+    if missing:
+        logger.warning(f"Checkpoint predates these modules (kept random init): {missing}")
+    if unexpected:
+        logger.warning(f"Checkpoint has unused keys (ignored): {unexpected}")
     model = model.to(device)
     model.eval()
     logger.info(f"Model loaded from {checkpoint_path} (epoch {checkpoint.get('epoch')}, "

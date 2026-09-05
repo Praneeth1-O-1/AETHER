@@ -144,19 +144,92 @@ class LULCHead(TaskHead):
         return self.classifier(features)
 
 
+@register_task_head("road")
+class RoadExtractionHead(TaskHead):
+    """Binary segmentation head for road extraction.
+
+    A small conv3x3 -> GELU -> conv1x1 stack (more capacity than LULCHead's
+    plain 1x1, since thin road structures need some local spatial context
+    to resolve). Outputs a single raw logit per pixel, suitable for
+    ``nn.BCEWithLogitsLoss`` against a binary road mask. Untrained until a
+    training run wires up that loss against the dataset's ``road`` label.
+
+    Parameters
+    ----------
+    in_channels : int
+        Number of input channels from the decoder.
+    hidden_channels : int
+        Width of the intermediate conv layer.
+    """
+
+    def __init__(self, in_channels: int, hidden_channels: int = 32) -> None:
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Conv2d(in_channels, hidden_channels, kernel_size=3, padding=1),
+            nn.GELU(),
+            nn.Conv2d(hidden_channels, 1, kernel_size=1),
+        )
+
+    def forward(self, features: torch.Tensor) -> torch.Tensor:
+        """Produce per-pixel road logits.
+
+        Parameters
+        ----------
+        features : torch.Tensor
+            Decoded features ``(B, in_channels, H, W)``.
+
+        Returns
+        -------
+        torch.Tensor
+            Road logits ``(B, 1, H, W)``.
+        """
+        return self.net(features)
+
+
+@register_task_head("building")
+class BuildingExtractionHead(TaskHead):
+    """Binary segmentation head for building footprint extraction.
+
+    Same conv3x3 -> GELU -> conv1x1 shape as RoadExtractionHead. Outputs a
+    single raw logit per pixel, suitable for ``nn.BCEWithLogitsLoss``
+    against the dataset's binary ``building_presence`` label. Untrained
+    until a training run wires up that loss.
+
+    Parameters
+    ----------
+    in_channels : int
+        Number of input channels from the decoder.
+    hidden_channels : int
+        Width of the intermediate conv layer.
+    """
+
+    def __init__(self, in_channels: int, hidden_channels: int = 32) -> None:
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Conv2d(in_channels, hidden_channels, kernel_size=3, padding=1),
+            nn.GELU(),
+            nn.Conv2d(hidden_channels, 1, kernel_size=1),
+        )
+
+    def forward(self, features: torch.Tensor) -> torch.Tensor:
+        """Produce per-pixel building-presence logits.
+
+        Parameters
+        ----------
+        features : torch.Tensor
+            Decoded features ``(B, in_channels, H, W)``.
+
+        Returns
+        -------
+        torch.Tensor
+            Building-presence logits ``(B, 1, H, W)``.
+        """
+        return self.net(features)
+
+
 # =========================================================================
 # Future heads (documented stubs — uncomment and implement when ready)
 # =========================================================================
-#
-# @register_task_head("road")
-# class RoadExtractionHead(TaskHead):
-#     """Binary segmentation head for road extraction."""
-#     ...
-#
-# @register_task_head("building")
-# class BuildingExtractionHead(TaskHead):
-#     """Binary segmentation head for building footprint extraction."""
-#     ...
 #
 # @register_task_head("change")
 # class ChangeDetectionHead(TaskHead):

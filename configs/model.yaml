@@ -38,3 +38,8 @@ model:
   task_heads:
     lulc:
       num_classes: 10          # Dataset-dependent; override per dataset
+    road:
+      hidden_channels: 32      # Untrained -- init only, no road loss wired up yet
+    building:
+      hidden_channels: 32      # Untrained -- init only, no building loss wired up yet
+    # change: requires bi-temporal input, deliberately left out for now

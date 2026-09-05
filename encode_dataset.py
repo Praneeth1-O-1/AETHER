@@ -66,7 +66,11 @@ def build_model(config_path: str, optical_channels: int, checkpoint: str | None,
 
     if checkpoint:
         state = torch.load(checkpoint, map_location=device, weights_only=True)
-        model.load_state_dict(state["model_state_dict"])
+        missing, unexpected = model.load_state_dict(state["model_state_dict"], strict=False)
+        if missing:
+            logger.warning(f"Checkpoint predates these modules (kept random init): {missing}")
+        if unexpected:
+            logger.warning(f"Checkpoint has unused keys (ignored): {unexpected}")
         logger.info(f"Loaded trained weights from {checkpoint}")
     else:
         logger.warning("No --checkpoint given: encoding with a randomly-initialized "
