@@ -166,16 +166,20 @@ def main() -> None:
 
     if args.tile_dir:
         ds = AETHERTileDataset([Path(args.tile_dir)], augment=False)
-        optical, sar, dem, target = ds[0]
+        optical, sar, dem, lulc_target, road_target, building_target = ds[0]
         optical, sar, dem = optical.unsqueeze(0).to(device), sar.unsqueeze(0).to(device), dem.unsqueeze(0).to(device)
 
         outputs = predict(model, optical, sar, dem, return_intermediates=args.save_alpha_maps)
-        lulc_pred = outputs["lulc"].argmax(dim=1).squeeze(0).cpu().numpy()  # (H, W)
-        alpha_maps = outputs["alpha_maps"].squeeze(0).cpu().numpy()        # (3, H', W')
+        lulc_pred = outputs["lulc"].argmax(dim=1).squeeze(0).cpu().numpy()          # (H, W)
+        alpha_maps = outputs["alpha_maps"].squeeze(0).cpu().numpy()                # (3, H', W')
+        road_prob = torch.sigmoid(outputs["road"]).squeeze(0).squeeze(0).cpu().numpy()        # (H, W)
+        building_prob = torch.sigmoid(outputs["building"]).squeeze(0).squeeze(0).cpu().numpy()  # (H, W)
 
         out_dir.mkdir(parents=True, exist_ok=True)
         np.save(out_dir / "lulc_pred.npy", lulc_pred)
-        logger.info(f"Saved prediction -> {out_dir / 'lulc_pred.npy'} "
+        np.save(out_dir / "road_prob.npy", road_prob)
+        np.save(out_dir / "building_prob.npy", building_prob)
+        logger.info(f"Saved lulc/road/building predictions -> {out_dir} "
                     f"| alpha[O,S,D] mean={alpha_maps.mean(axis=(1, 2)).round(3).tolist()}")
         if args.save_alpha_maps:
             np.save(out_dir / "alpha_maps.npy", alpha_maps)
@@ -184,7 +188,7 @@ def main() -> None:
 
     # No single tile given: evaluate on the held-out spatial test split,
     # using the same split boundary train.py used (same dataset-root/n_val/n_test).
-    from train import confusion_matrix, mean_iou  # reuse rather than duplicate
+    from train import binary_iou, confusion_matrix, mean_iou  # reuse rather than duplicate
 
     _, _, test_dirs = spatial_split(Path(args.dataset_root), args.n_val, args.n_test)
     logger.info(f"Evaluating on {len(test_dirs)} held-out test tiles.")
@@ -193,25 +197,30 @@ def main() -> None:
     correct, total = 0, 0
     conf = torch.zeros(args.num_classes, args.num_classes, dtype=torch.int64)
     alpha_sum = torch.zeros(3)
+    road_iou_sum, building_iou_sum = 0.0, 0.0
     all_preds = []
 
     with torch.no_grad():
-        for optical, sar, dem, target in test_ds:
+        for optical, sar, dem, lulc_target, road_target, building_target in test_ds:
             optical, sar, dem = optical.unsqueeze(0).to(device), sar.unsqueeze(0).to(device), dem.unsqueeze(0).to(device)
             outputs = predict(model, optical, sar, dem)
 
             pred = outputs["lulc"].argmax(dim=1).squeeze(0).cpu()
-            mask = target != IGNORE_INDEX
-            correct += (pred[mask] == target[mask]).sum().item()
+            mask = lulc_target != IGNORE_INDEX
+            correct += (pred[mask] == lulc_target[mask]).sum().item()
             total += mask.sum().item()
-            conf += confusion_matrix(pred[mask], target[mask], args.num_classes)
+            conf += confusion_matrix(pred[mask], lulc_target[mask], args.num_classes)
             alpha_sum += outputs["alpha_maps"].mean(dim=(0, 2, 3)).cpu()
+            road_iou_sum += binary_iou(outputs["road"].cpu(), road_target.unsqueeze(0))
+            building_iou_sum += binary_iou(outputs["building"].cpu(), building_target.unsqueeze(0))
             all_preds.append(pred.numpy())
 
+    n = max(len(test_ds), 1)
     acc = correct / max(total, 1)
     miou = mean_iou(conf)
-    avg_alpha = (alpha_sum / max(len(test_ds), 1)).round(decimals=3).tolist()
-    logger.info(f"Test set: acc {acc:.3f} mIoU {miou:.3f} | alpha[O,S,D] {avg_alpha}")
+    avg_alpha = (alpha_sum / n).round(decimals=3).tolist()
+    logger.info(f"Test set: acc {acc:.3f} mIoU {miou:.3f} road_iou {road_iou_sum / n:.3f} "
+                f"building_iou {building_iou_sum / n:.3f} | alpha[O,S,D] {avg_alpha}")
 
     if args.save_alpha_maps:
         out_dir.mkdir(parents=True, exist_ok=True)
