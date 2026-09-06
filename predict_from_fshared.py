@@ -67,6 +67,17 @@ def main() -> None:
 
     device = torch.device(args.device)
     model = build_model(args.config, args.checkpoint, device)
+
+    # A skip-connected decoder needs the encoders' intermediate feature maps as
+    # well as f_shared, and encode_dataset.py caches only f_shared. Fail with a
+    # clear message rather than an opaque channel-count mismatch inside conv1.
+    if getattr(model, "use_skips", False):
+        raise SystemExit(
+            "This model uses skip connections, so the decoder needs encoder features "
+            "at H/2, H/4 and H/8 -- cached f_shared alone is not sufficient.\n"
+            "Run the full pipeline instead:\n"
+            "  python inference.py --checkpoint <ckpt> --tile-dir <tile>"
+        )
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
     npz_files = sorted(args.fshared_dir.glob("*.npz"))

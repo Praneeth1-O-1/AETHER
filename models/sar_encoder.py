@@ -116,18 +116,37 @@ class SAREncoder(nn.Module):
             if src_conv.bias is not None and dst_conv.bias is not None:
                 dst_conv.bias.copy_(src_conv.bias)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    # features = [conv1, bn1, relu, maxpool, layer1, layer2, layer3]
+    #             idx 2 -> H/2 64ch, idx 4 -> H/4 64ch, idx 5 -> H/8 128ch
+    _SKIP_TAPS = {2: "h2", 4: "h4", 5: "h8"}
+
+    def skip_channels(self) -> dict[str, int]:
+        """Channels this encoder contributes at each skip scale."""
+        return {"h2": 64, "h4": 64, "h8": 128}
+
+    def forward(self, x: torch.Tensor, return_skips: bool = False):
         """Forward pass.
 
         Parameters
         ----------
         x : torch.Tensor
             Input tensor of shape ``(B, in_channels, H, W)``.
+        return_skips : bool
+            If ``True``, also return intermediate maps for decoder skips.
 
         Returns
         -------
-        torch.Tensor
-            Feature tensor of shape ``(B, feature_dim, H/16, W/16)``.
+        torch.Tensor or tuple[torch.Tensor, dict[str, torch.Tensor]]
+            Feature tensor ``(B, feature_dim, H/16, W/16)``, plus skips
+            when requested.
         """
-        features = self.features(x)          # (B, 256, H/16, W/16)
-        return self.projection(features)     # (B, feature_dim, H/16, W/16)
+        if not return_skips:
+            return self.projection(self.features(x))
+
+        skips: dict[str, torch.Tensor] = {}
+        h = x
+        for i, layer in enumerate(self.features):
+            h = layer(h)
+            if i in self._SKIP_TAPS:
+                skips[self._SKIP_TAPS[i]] = h
+        return self.projection(h), skips

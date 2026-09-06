@@ -249,6 +249,7 @@ class CrossModalAlphaFusion(nn.Module):
         f_optical: torch.Tensor,
         f_sar: torch.Tensor,
         f_dem: torch.Tensor,
+        presence: torch.Tensor | None = None,
         return_intermediates: bool = False,
     ) -> dict[str, torch.Tensor]:
         """Fuse optical, SAR, and DEM feature maps.
@@ -261,6 +262,24 @@ class CrossModalAlphaFusion(nn.Module):
             SAR features ``(B, C, H', W')``.
         f_dem : torch.Tensor
             DEM features ``(B, C, H', W')``.
+        presence : torch.Tensor, optional
+            ``(B, 3)`` in {0, 1}, marking which of ``(optical, sar, dem)`` is
+            genuinely available for each sample. ``None`` means all present.
+
+            Without this the module could not represent absence at all, with
+            three consequences that between them made "the fusion ignores SAR"
+            unmeasurable:
+
+            1. Modality embeddings were added *after* any upstream masking, so
+               a zeroed modality entered as a learned nonzero constant.
+            2. Cross-attention then turned a constant optical query into a
+               function of SAR (and vice versa), so a "removed" modality still
+               carried the other one's content into the fusion. Ablation
+               scripts that zero encoder outputs therefore never removed
+               anything.
+            3. The alpha softmax could never reach 0 for an absent modality, so
+               weight spent on absence was subtracted from the informative
+               modalities and replaced by a constant bias.
         return_intermediates : bool
             If ``True``, include intermediate tensors in the output dict
             for ablation studies.
@@ -279,26 +298,44 @@ class CrossModalAlphaFusion(nn.Module):
             - ``"f_sar_cross"`` — cross-attended SAR features
             - ``"f_joint"`` — joint embedding before alpha weighting
         """
+        if presence is None:
+            presence = f_optical.new_ones(f_optical.shape[0], 3)
+        presence = presence.to(f_optical.dtype)
+        p_opt = presence[:, 0].view(-1, 1, 1, 1)
+        p_sar = presence[:, 1].view(-1, 1, 1, 1)
+        p_dem = presence[:, 2].view(-1, 1, 1, 1)
+
         # ---- 1. Add modality embeddings ----
+        # Gated by presence, so an absent modality stays exactly zero instead of
+        # becoming its learned embedding constant.
         if self.use_modality_embeddings:
-            f_optical = f_optical + self.emb_optical
-            f_sar = f_sar + self.emb_sar
-            f_dem = f_dem + self.emb_dem
+            f_optical = f_optical + self.emb_optical * p_opt
+            f_sar = f_sar + self.emb_sar * p_sar
+            f_dem = f_dem + self.emb_dem * p_dem
 
         # ---- 2. Bidirectional cross-attention ----
         opt_seq, H, W = self._spatial_to_seq(f_optical)
         sar_seq, _, _ = self._spatial_to_seq(f_sar)
+        g_opt = p_opt.view(-1, 1, 1)   # (B, 1, 1), broadcast over (B, N, C)
+        g_sar = p_sar.view(-1, 1, 1)
 
-        # Optical attends to SAR (query=opt, key/value=sar)
-        opt_cross, _ = self.cross_attn_opt2sar(opt_seq, sar_seq, sar_seq)
-        opt_cross = self.norm_opt(opt_cross + opt_seq)  # Residual + LN
+        # Optical attends to SAR (query=opt, key/value=sar). The attention
+        # DELTA is gated by the presence of the *key* modality rather than
+        # masking the keys themselves: a key_padding_mask that covers every key
+        # yields NaN, which is exactly the fully-absent case we must support.
+        opt_attn, _ = self.cross_attn_opt2sar(opt_seq, sar_seq, sar_seq)
+        opt_cross = self.norm_opt(opt_seq + opt_attn * g_sar)
 
         # SAR attends to Optical (query=sar, key/value=opt)
-        sar_cross, _ = self.cross_attn_sar2opt(sar_seq, opt_seq, opt_seq)
-        sar_cross = self.norm_sar(sar_cross + sar_seq)  # Residual + LN
+        sar_attn, _ = self.cross_attn_sar2opt(sar_seq, opt_seq, opt_seq)
+        sar_cross = self.norm_sar(sar_seq + sar_attn * g_opt)
 
-        f_optical_cross = self._seq_to_spatial(opt_cross, H, W)
-        f_sar_cross = self._seq_to_spatial(sar_cross, H, W)
+        # LayerNorm has an affine bias, so norm(0) is a nonzero constant. Gate
+        # once more on the way out so an absent modality contributes exactly
+        # zero to both the joint embedding and the weighted sum.
+        f_optical_cross = self._seq_to_spatial(opt_cross, H, W) * p_opt
+        f_sar_cross = self._seq_to_spatial(sar_cross, H, W) * p_sar
+        f_dem = f_dem * p_dem
 
         # ---- 3. Joint Feature Embedding ----
         f_concat = torch.cat([f_optical_cross, f_sar_cross, f_dem], dim=1)
@@ -306,6 +343,13 @@ class CrossModalAlphaFusion(nn.Module):
 
         # ---- 4. Adaptive Spatial Weight Estimator ----
         alpha_logits = self.alpha_estimator(f_joint)  # (B, 3, H', W')
+        # Renormalize over PRESENT modalities only, so no alpha mass is spent
+        # on absence. A finite floor rather than -inf keeps the all-absent row
+        # (the "nothing" ablation) finite instead of NaN.
+        absent = (presence < 0.5).view(-1, 3, 1, 1)
+        any_present = presence.sum(dim=1).view(-1, 1, 1, 1) > 0.5
+        alpha_logits = torch.where(absent & any_present,
+                                   alpha_logits.new_full((), -1e4), alpha_logits)
         alpha_maps = F.softmax(alpha_logits, dim=1)   # Sum to 1 per pixel
 
         alpha_o = alpha_maps[:, 0:1, :, :]  # (B, 1, H', W')

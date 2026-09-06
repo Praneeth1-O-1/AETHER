@@ -35,6 +35,7 @@ class OpticalEncoder(nn.Module):
         in_channels: int = 13,
         feature_dim: int = 256,
         pretrained: bool = True,
+        detail_channels: int = 0,
     ) -> None:
         super().__init__()
         self.in_channels = in_channels
@@ -82,6 +83,21 @@ class OpticalEncoder(nn.Module):
         # ------------------------------------------------------------------
         self.projection = nn.Conv2d(384, feature_dim, kernel_size=1, bias=False)
 
+        # ------------------------------------------------------------------
+        # 5. Optional H/2 detail branch
+        # ------------------------------------------------------------------
+        # ConvNeXt's stem is a 4x4 stride-4 patchify, so this backbone produces
+        # NOTHING above H/4 -- yet optical is the dominant modality and roads
+        # are ~1 px wide at 10 m/px. This small parallel branch supplies the
+        # H/2 detail the patchify discards, at negligible cost. 0 disables it.
+        self.detail_channels = detail_channels
+        if detail_channels:
+            self.detail = nn.Sequential(
+                nn.Conv2d(in_channels, detail_channels, 3, stride=2, padding=1, bias=False),
+                nn.BatchNorm2d(detail_channels),
+                nn.GELU(),
+            )
+
     # ------------------------------------------------------------------
     # Weight replication for non-RGB inputs
     # ------------------------------------------------------------------
@@ -108,18 +124,42 @@ class OpticalEncoder(nn.Module):
             if src_conv.bias is not None and dst_conv.bias is not None:
                 dst_conv.bias.copy_(src_conv.bias)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    #: index into ``self.features`` after which each skip scale is available
+    _SKIP_TAPS = {1: "h4", 3: "h8"}   # stage1 -> H/4 96ch, stage2 -> H/8 192ch
+
+    def skip_channels(self) -> dict[str, int]:
+        """Channels this encoder contributes at each skip scale."""
+        out = {"h4": 96, "h8": 192}
+        if self.detail_channels:
+            out["h2"] = self.detail_channels
+        return out
+
+    def forward(self, x: torch.Tensor, return_skips: bool = False):
         """Forward pass.
 
         Parameters
         ----------
         x : torch.Tensor
             Input tensor of shape ``(B, in_channels, H, W)``.
+        return_skips : bool
+            If ``True``, also return the intermediate feature maps keyed by
+            scale for the decoder's skip connections.
 
         Returns
         -------
-        torch.Tensor
-            Feature tensor of shape ``(B, feature_dim, H/16, W/16)``.
+        torch.Tensor or tuple[torch.Tensor, dict[str, torch.Tensor]]
+            Feature tensor ``(B, feature_dim, H/16, W/16)``, plus skips
+            when requested.
         """
-        features = self.features(x)       # (B, 384, H/16, W/16)
-        return self.projection(features)   # (B, 256, H/16, W/16)
+        if not return_skips:
+            return self.projection(self.features(x))
+
+        skips: dict[str, torch.Tensor] = {}
+        if self.detail_channels:
+            skips["h2"] = self.detail(x)
+        h = x
+        for i, layer in enumerate(self.features):
+            h = layer(h)
+            if i in self._SKIP_TAPS:
+                skips[self._SKIP_TAPS[i]] = h
+        return self.projection(h), skips

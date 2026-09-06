@@ -8,18 +8,31 @@
 
 model:
   # ----- Optical Encoder (ConvNeXt-Tiny, Stage 3) -----
+  # in_channels are overridden from data.dataset at train time; the values
+  # here document the `strict` archive's actual layout.
   optical_encoder:
-    in_channels: 13            # Sentinel-2: 13 spectral bands
+    in_channels: 11            # 10 usable Sentinel-2 bands + validity channel
     pretrained: true
+    detail_channels: 48        # H/2 branch; ConvNeXt's stride-4 patchify emits
+                               # nothing above H/4, and optical is the dominant
+                               # modality for the ~1 px-wide road/building detail
 
   # ----- SAR Encoder (ResNet18, Layer 3) -----
   sar_encoder:
-    in_channels: 2             # Sentinel-1: VV + VH polarizations
+    in_channels: 7             # VV, VH, despeckled VV/VH, VV-VH ratio, validity,
+                               # orbit direction. The despeckled pair sits
+                               # alongside the raw bands rather than replacing
+                               # them; the orbit channel exists because ASC/DESC
+                               # is confounded with country in 17 of 22 cases,
+                               # which made a large slice of SAR variance
+                               # unexplainable and SAR rational to ignore.
     pretrained: true
 
   # ----- DEM Encoder (Lightweight CNN) -----
   dem_encoder:
-    in_channels: 1             # Single elevation channel
+    in_channels: 3             # absolute elevation + local relief + validity
+                               # (voids reach 42% of a tile and were previously
+                               # indistinguishable from genuinely flat ground)
 
   # ----- CrossModalAlphaFusion -----
   fusion:
@@ -30,16 +43,33 @@ model:
     num_refinement_blocks: 1   # Single residual block for feature harmonization
     use_se_refinement: false   # SE attention disabled by default for architectural simplicity
 
+  # ----- Skip connections -----
+  # Feed encoder features at H/8, H/4 and H/2 into the matching decoder stages.
+  # f_shared alone is H/16 (a 16x16 grid for a 256x256 tile), where a 10 m/px
+  # road is sub-cell; skips let the decoder read boundaries instead of
+  # synthesizing them, and free the bottleneck to encode semantics.
+  # Set false to rebuild the original skip-free architecture.
+  use_skips: true
+
   # ----- Decoder -----
   decoder:
-    out_channels: 16           # Final decoder feature channels before task head
+    out_channels: 48           # Widened from 16: road and building are detail
+                               # tasks that previously shared a 16-channel
+                               # bottleneck feeding a single 3x3 conv per head
 
   # ----- Task Heads -----
   task_heads:
     lulc:
-      num_classes: 10          # Dataset-dependent; override per dataset
+      num_classes: 9           # Dynamic World classes; override per dataset
     road:
-      hidden_channels: 32      # Untrained -- init only, no road loss wired up yet
+      hidden_channels: 64
     building:
-      hidden_channels: 32      # Untrained -- init only, no building loss wired up yet
+      hidden_channels: 64
     # change: requires bi-temporal input, deliberately left out for now
+
+  # ----- Auxiliary unimodal heads -----
+  # A 1x1 LULC classifier on each encoder's own features, before fusion. Forces
+  # every encoder to be independently predictive so the fusion cannot quietly
+  # ignore one. Enabled from train.py via --aux-weight; listed here so a
+  # checkpoint's model_cfg records whether they were built.
+  use_aux_heads: false

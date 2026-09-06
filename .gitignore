@@ -125,3 +125,23 @@ htmlcov/
 # ------------------------------------------------------------
 docs/_build/
 site/
+
+# ------------------------------------------------------------
+# Raw tile archive & derived indexes
+# (16GB+; *.tif alone left 6,406 per-tile meta.json files untracked)
+# ------------------------------------------------------------
+data/strict/
+data/manifest_strict.json
+data/index.parquet
+
+# ------------------------------------------------------------
+# Per-experiment checkpoint directories
+# (checkpoints/ was already covered; settings.py creates new
+# checkpoints_<name>/ dirs per experiment, e.g. checkpoints_cloud/)
+# ------------------------------------------------------------
+checkpoints_*/
+
+# ------------------------------------------------------------
+# LibreOffice / OpenOffice lock files
+# ------------------------------------------------------------
+.~lock.*#
