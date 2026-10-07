@@ -211,7 +211,11 @@ def build_manifest(dataset_root: Path, cache: Path | None = None,
             ]
         logger.info(f"Manifest cache {cache} predates the orbit field -- rebuilding.")
 
-    tiles = sorted(p for p in dataset_root.glob("*/*") if (p / "inputs.tif").exists())
+    # rglob rather than a fixed "*/*" depth: this archive nests an extra
+    # country-level folder (root/aether_nepal/<AOI>/<tile>/inputs.tif) that
+    # earlier archives didn't have. Depth-agnostic discovery means a future
+    # archive with yet another grouping level won't silently find zero tiles.
+    tiles = sorted(p.parent for p in dataset_root.rglob("inputs.tif"))
     if not tiles:
         raise FileNotFoundError(f"No tiles found under {dataset_root}")
 
