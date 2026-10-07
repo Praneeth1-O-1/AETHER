@@ -118,7 +118,14 @@ MODALITIES = ("optical", "sar", "dem")
 # rational optimum. Telling it which geometry it is looking at costs 1 channel.
 ORBIT_CODES = {"ASCENDING": 1.0, "DESCENDING": -1.0, "UNKNOWN": 0.0}
 
-_YEAR_RE = re.compile(r"_(19|20)\d{2}$")
+# Matches the year token wherever it falls, plus anything after it (e.g. a
+# cloud-condition tag like "_cloudy" / "_almost_clear" on a cloud-bank
+# variant). Anchoring to end-of-string alone (the original pattern) missed
+# every such variant, leaving its condition suffix attached -- so
+# "..._2023_cloudy" and "..._2023_low_cloudy", almost certainly the same
+# physical AOI at two cloud severities, were treated as two unrelated
+# locations and could land on opposite sides of the train/val/test split.
+_YEAR_RE = re.compile(r"_((?:19|20)\d{2})(?:_.*)?$")
 
 
 # =========================================================================
@@ -148,13 +155,19 @@ class TileRecord:
 
 
 def location_of(aoi_name: str) -> str:
-    """AOI name with the trailing year stripped: the geographic location."""
+    """AOI name with the year and any trailing condition tag stripped.
+
+    This is the geographic-identity key that `location_split` holds out
+    whole groups of -- it must collapse every cloud-condition variant of the
+    same physical AOI (same coordinates, same year) to one identical string,
+    or they can end up split across train/val/test.
+    """
     return _YEAR_RE.sub("", aoi_name)
 
 
 def year_of(aoi_name: str) -> str:
     m = _YEAR_RE.search(aoi_name)
-    return m.group(0)[1:] if m else "unknown"
+    return m.group(1) if m else "unknown"
 
 
 def _missing_set(meta: dict) -> set[str]:
