@@ -64,10 +64,10 @@ logger = logging.getLogger(__name__)
 
 # Measured on the train split (see scripts/dataset_stats.py):
 #   inverse-sqrt frequency weights, normalized to mean 1.
-LULC_CLASS_WEIGHTS = [0.8076, 0.3797, 1.0178, 2.8616, 0.5438, 0.5369, 0.7920, 0.5228, 1.5379]
-#   sqrt-damped inverse positive rate: road 3.65% of mapped px, building 1.27%.
-ROAD_POS_WEIGHT = 5.14
-BUILDING_POS_WEIGHT = 8.81
+LULC_CLASS_WEIGHTS = [0.819, 0.3715, 1.0373, 1.8884, 0.638, 0.5889, 0.819, 0.7326, 2.1051]
+#   sqrt-damped inverse positive rate: road 3.72% of mapped px, building 1.42% coverage.
+ROAD_POS_WEIGHT = 5.09
+BUILDING_POS_WEIGHT = 8.35
 
 AMP_DTYPES = {"bf16": torch.bfloat16, "fp16": torch.float16, "off": None}
 

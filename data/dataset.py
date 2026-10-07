@@ -61,17 +61,17 @@ OPTICAL_BANDS = (
     "sentinel2_B7", "sentinel2_B8", "sentinel2_B8A", "sentinel2_B11", "sentinel2_B12",
 )
 OPTICAL_MEAN = np.array(
-    [0.0682, 0.0940, 0.1082, 0.1442, 0.2110, 0.2364, 0.2440, 0.2543, 0.2245, 0.1644],
+    [0.1065, 0.1267, 0.1315, 0.1684, 0.2348, 0.2605, 0.2653, 0.2771, 0.2238, 0.1627],
     dtype=np.float32,
 ).reshape(-1, 1, 1)
 OPTICAL_STD = np.array(
-    [0.0849, 0.0870, 0.1094, 0.1071, 0.1016, 0.1062, 0.1110, 0.1086, 0.1238, 0.1211],
+    [0.1655, 0.1531, 0.1546, 0.1533, 0.1407, 0.1411, 0.1429, 0.1409, 0.1211, 0.1157],
     dtype=np.float32,
 ).reshape(-1, 1, 1)
 
 SAR_BANDS = ("sentinel1_VV", "sentinel1_VH")
-SAR_MEAN = np.array([-11.6547, -18.6541], dtype=np.float32).reshape(-1, 1, 1)
-SAR_STD = np.array([5.0422, 5.3633], dtype=np.float32).reshape(-1, 1, 1)
+SAR_MEAN = np.array([-11.4781, -18.6431], dtype=np.float32).reshape(-1, 1, 1)
+SAR_STD = np.array([5.9413, 6.4990], dtype=np.float32).reshape(-1, 1, 1)
 
 # Optical is clipped at OPTICAL_CLIP but SAR was not, so SAR outliers reached
 # -51 dB and +15 dB -- i.e. -6.1 to +5.3 sigma -- while optical was held to a
@@ -93,9 +93,9 @@ SAR_RATIO_STD = np.float32(3.0)
 # trades resolution for radiometric stability and the encoder should choose.
 SAR_DESPECKLE_WINDOW = 5
 
-DEM_MEAN = 875.29
-DEM_STD = 925.65
-DEM_RELIEF_STD = 81.30
+DEM_MEAN = 714.01
+DEM_STD = 898.89
+DEM_RELIEF_STD = 81.68
 
 # Reflectance has a thin tail above 1.0 (specular / snow). Clip in physical
 # units before standardizing so a handful of pixels can't dominate a batch.
