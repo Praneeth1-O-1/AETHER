@@ -191,7 +191,11 @@ def build_manifest(dataset_root: Path, cache: Path | None = None,
     """
     dataset_root = Path(dataset_root)
     if cache is None:
-        cache = dataset_root.parent / f"manifest_{dataset_root.name}.json"
+        # NOT dataset_root.parent -- that's read-only when dataset_root is a
+        # mounted input (e.g. Kaggle's /kaggle/input/...), so writing the
+        # cache there crashes after the (slow) scan has already finished.
+        # cwd is writable in every environment this runs in.
+        cache = Path.cwd() / ".manifest_cache" / f"manifest_{dataset_root.name}.json"
     cache = Path(cache)
 
     if cache.exists() and not refresh:
