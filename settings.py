@@ -106,16 +106,40 @@ GRAD_CLIP = 1.0
 #: optical -- the only place the fusion contribution can be demonstrated.
 TASKS = "lulc,road,building"
 
-#: Probability that one random modality is zeroed per sample. Split across 3
-#: modalities, 0.15 drops each only 5% of the time -- too weak to force
-#: redundant pathways. 0.5 is the setting that makes the fusion claim testable.
-MODALITY_DROPOUT = 0.5
+#: Per-modality probability of being independently zeroed per sample.
+#: train.py exposes these as three separate flags (--drop-optical/-sar/-dem),
+#: not one combined probability -- 0.15 each (train.py's own default) was
+#: judged too weak to force redundant pathways; 0.5 each is the setting that
+#: makes the fusion claim testable.
+DROP_OPTICAL = 0.5
+DROP_SAR = 0.5
+DROP_DEM = 0.5
 
 #: Relative loss weights.
 LULC_WEIGHT = 1.0
 ROAD_WEIGHT = 0.5
 BUILDING_WEIGHT = 0.5
 DICE_WEIGHT = 1.0
+
+# =========================================================================
+# Cloud injection -- the reason SAR has anything to do (see train.py)
+# =========================================================================
+
+CLOUD_PROB = 0.5             # fraction of training samples receiving injected cloud
+CLOUD_START_COVERAGE = 0.3   # max cloud coverage at epoch 1; ramps to 1.0
+CLOUD_RAMP_FRAC = 0.5        # fraction of training over which coverage reaches 1.0
+CLOUD_OPAQUE_FRAC = 0.6      # share of clouded samples with validity zeroed (vs haze)
+CLOUD_FULL_PROB = 0.15       # share of clouded samples forced to total occlusion
+CLOUD_SELECT_WEIGHT = 0.5    # weight of the 50%-cloud val score in checkpoint selection
+
+# =========================================================================
+# Anti-collapse: forces every encoder to be independently predictive
+# =========================================================================
+
+AUX_WEIGHT = 0.3             # weight of the per-modality auxiliary LULC losses
+ALPHA_ENTROPY_WEIGHT = 0.02  # initial weight of the alpha entropy floor
+ALPHA_ENTROPY_FRAC = 0.4     # fraction of training over which it's annealed to 0
+OGM_ALPHA = 0.5              # OGM-GE gradient modulation strength; 0 disables
 
 USE_PRETRAINED = True
 

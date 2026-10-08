@@ -36,7 +36,19 @@ argv = [
     "--warmup-frac", str(S.WARMUP_FRACTION),
     "--grad-clip", str(S.GRAD_CLIP),
     "--tasks", S.TASKS,
-    "--modality-dropout-prob", str(S.MODALITY_DROPOUT),
+    "--drop-optical", str(S.DROP_OPTICAL),
+    "--drop-sar", str(S.DROP_SAR),
+    "--drop-dem", str(S.DROP_DEM),
+    "--cloud-prob", str(S.CLOUD_PROB),
+    "--cloud-start-coverage", str(S.CLOUD_START_COVERAGE),
+    "--cloud-ramp-frac", str(S.CLOUD_RAMP_FRAC),
+    "--cloud-opaque-frac", str(S.CLOUD_OPAQUE_FRAC),
+    "--cloud-full-prob", str(S.CLOUD_FULL_PROB),
+    "--cloud-select-weight", str(S.CLOUD_SELECT_WEIGHT),
+    "--aux-weight", str(S.AUX_WEIGHT),
+    "--alpha-entropy-weight", str(S.ALPHA_ENTROPY_WEIGHT),
+    "--alpha-entropy-frac", str(S.ALPHA_ENTROPY_FRAC),
+    "--ogm-alpha", str(S.OGM_ALPHA),
     "--lulc-weight", str(S.LULC_WEIGHT),
     "--road-weight", str(S.ROAD_WEIGHT),
     "--building-weight", str(S.BUILDING_WEIGHT),
@@ -57,5 +69,5 @@ from train import main  # noqa: E402
 if __name__ == "__main__":
     print(f"Checkpoints -> {S.CHECKPOINT_DIR}")
     print(f"Tasks: {S.TASKS} | epochs {S.EPOCHS} | batch {S.TRAIN_BATCH_SIZE} "
-          f"| modality dropout {S.MODALITY_DROPOUT}\n")
+          f"| modality dropout O={S.DROP_OPTICAL} S={S.DROP_SAR} D={S.DROP_DEM}\n")
     main()
