@@ -135,6 +135,16 @@ def fractal_cloud_mask(
 # =========================================================================
 
 
+def default_bank_path(dataset_root: Path) -> Path:
+    """Where training writes the bank and evaluation reads it back.
+
+    NOT dataset_root.parent -- that's read-only when dataset_root is a mounted
+    input (e.g. Kaggle's /kaggle/input/...). Lives beside the manifest cache
+    under cwd, which is writable in every environment this runs in.
+    """
+    return Path.cwd() / ".manifest_cache" / f"cloud_masks_{Path(dataset_root).name}.npz"
+
+
 class CloudMaskBank:
     """Real cloud shapes taken from the archive's own partially-clouded tiles.
 

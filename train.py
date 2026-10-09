@@ -37,7 +37,9 @@ import torch.nn as nn
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
 
-from data.clouds import CloudConfig, CloudInjector, CloudMaskBank, curriculum_coverage
+from data.clouds import (
+    CloudConfig, CloudInjector, CloudMaskBank, curriculum_coverage, default_bank_path,
+)
 from data.dataset import (
     DEM_CHANNELS,
     IGNORE_INDEX,
@@ -188,7 +190,7 @@ def build_loaders(args) -> tuple[DataLoader, dict[str, DataLoader]]:
     bank = None
     if args.cloud_prob > 0:
         bank = CloudMaskBank.build(
-            bank_rec, cache=Path(args.dataset_root).parent / "cloud_masks.npz",
+            bank_rec, cache=default_bank_path(args.dataset_root),
         )
 
     train_cloud = CloudInjector(

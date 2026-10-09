@@ -39,7 +39,7 @@ from torch.utils.data import DataLoader
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # noqa: E402
 
-from data.clouds import CloudConfig, CloudInjector, CloudMaskBank  # noqa: E402
+from data.clouds import CloudConfig, CloudInjector, CloudMaskBank, default_bank_path  # noqa: E402
 from data.dataset import (  # noqa: E402
     IGNORE_INDEX,
     LULC_CLASS_NAMES,
@@ -125,7 +125,7 @@ def main() -> None:
 
     # Same bank the training run used, so injected cloud looks the same at
     # evaluation time as it did during training.
-    bank_path = Path(args.dataset_root).parent / "cloud_masks.npz"
+    bank_path = default_bank_path(args.dataset_root)
     bank = CloudMaskBank.load(bank_path) if bank_path.exists() else None
     if bank is None:
         logger.warning(f"No cloud mask bank at {bank_path}; using fractal masks only.")
