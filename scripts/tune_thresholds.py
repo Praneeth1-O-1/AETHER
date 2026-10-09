@@ -42,6 +42,7 @@ from data.dataset import (  # noqa: E402
     build_manifest,
     location_split,
 )
+import settings as S  # noqa: E402
 from inference import load_model, to_device  # noqa: E402
 from utils.metrics import ConfusionMatrix  # noqa: E402
 
@@ -50,7 +51,7 @@ def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--checkpoint", type=str, default="checkpoints/best.pt")
     p.add_argument("--config", type=str, default="configs/model.yaml")
-    p.add_argument("--dataset-root", type=str, default="data/strict")
+    p.add_argument("--dataset-root", type=str, default=str(S.DATASET_ROOT))
     p.add_argument("--batch-size", type=int, default=16)
     p.add_argument("--num-workers", type=int, default=6)
     p.add_argument("--output", type=str, default="outputs/final_metrics.json")

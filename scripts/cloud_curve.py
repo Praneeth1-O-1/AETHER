@@ -48,6 +48,7 @@ from data.dataset import (  # noqa: E402
     build_manifest,
     location_split,
 )
+import settings as S  # noqa: E402
 from inference import get_device, load_model, to_device  # noqa: E402
 from utils.metrics import ConfusionMatrix  # noqa: E402
 
@@ -71,7 +72,7 @@ def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="LULC accuracy as a function of cloud cover.")
     p.add_argument("--config", type=str, default="configs/model.yaml")
     p.add_argument("--checkpoint", type=str, required=True)
-    p.add_argument("--dataset-root", type=str, default="data/strict")
+    p.add_argument("--dataset-root", type=str, default=str(S.DATASET_ROOT))
     p.add_argument("--split", choices=["test", "val"], default="test")
     p.add_argument("--val-frac", type=float, default=0.10)
     p.add_argument("--test-frac", type=float, default=0.10)
