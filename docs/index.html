@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AETHER — Land-Cover Maps That See Through Cloud</title>
+<meta name="description" content="AETHER fuses Sentinel-2 optical, Sentinel-1 radar and elevation data per pixel to map land cover, roads and buildings, shifting to radar when cloud hides the optical image.">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Source+Sans+3:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --paper: #F2F4ED; --surface: #FCFDF9; --ink: #171B15; --ink-soft: #565C4E; --line: #D9DDCF;
+    --optical: #C8402A; --sar: #2E8A5A; --dem: #3560C4; --code-bg: #E9EBE1;
+    --optical-tint: #F7E1DB; --sar-tint: #DFEFE4; --dem-tint: #E0E6F8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #14160F; --surface: #1C1F16; --ink: #ECEEE4; --ink-soft: #A5AA98; --line: #363A2C;
+      --optical: #FF7A5C; --sar: #55CB8D; --dem: #7C9EFF; --code-bg: #23261B;
+      --optical-tint: #3A231C; --sar-tint: #17351F; --dem-tint: #1D2745;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #14160F; --surface: #1C1F16; --ink: #ECEEE4; --ink-soft: #A5AA98; --line: #363A2C;
+    --optical: #FF7A5C; --sar: #55CB8D; --dem: #7C9EFF; --code-bg: #23261B;
+    --optical-tint: #3A231C; --sar-tint: #17351F; --dem-tint: #1D2745;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 17px/1.62 'Source Sans 3', system-ui, sans-serif; }
+  a { color: var(--ink); text-decoration-color: var(--line); text-underline-offset: 3px; }
+  a:hover { text-decoration-color: var(--ink); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--dem); outline-offset: 3px; }
+  img { max-width: 100%; display: block; }
+  h1, h2, h3 { font-family: 'Fraunces', Georgia, serif; text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+  h2 { font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 600; }
+  h3 { font-size: 1.15rem; font-weight: 600; }
+  p { margin: 0; max-width: 64ch; }
+  code, .mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: .86em; }
+  .eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: .76rem; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-soft); }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 28px; }
+
+  nav { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--paper) 92%, transparent);
+        backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
+  nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 56px; gap: 16px; }
+  nav .brand { font-family: 'Fraunces', serif; font-weight: 700; font-size: 1.15rem; text-decoration: none; }
+  nav ul { list-style: none; display: flex; gap: 22px; margin: 0; padding: 0; font-size: .94rem; }
+  nav ul a { text-decoration: none; color: var(--ink-soft); }
+  nav ul a:hover { color: var(--ink); }
+  @media (max-width: 760px) { nav ul { display: none; } }
+
+  header.hero { padding: 72px 0 56px; }
+  .hero-grid { display: grid; grid-template-columns: 1.05fr 1fr; gap: 48px; align-items: center; }
+  .hero h1 { font-size: clamp(2.4rem, 5.6vw, 4rem); line-height: 1.04; font-weight: 600; margin: 14px 0 20px; }
+  .hero h1 em { font-style: italic; font-weight: 500; }
+  .hero .lede { font-size: 1.16rem; color: var(--ink-soft); }
+  .cta { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 28px; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 8px; font-weight: 600;
+         text-decoration: none; font-size: .96rem; border: 1px solid var(--ink); }
+  .btn.primary { background: var(--ink); color: var(--paper); }
+  .btn.ghost { color: var(--ink); }
+
+  .shift { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 22px 24px; }
+  .shift-row { display: grid; grid-template-columns: 96px 1fr; gap: 14px; align-items: center; padding: 9px 0; }
+  .shift-row + .shift-row { border-top: 1px solid var(--line); }
+  .shift-label { font-size: .88rem; color: var(--ink-soft); }
+  .bar { display: flex; height: 26px; border-radius: 5px; overflow: hidden; gap: 2px; background: var(--surface); }
+  .bar span { display: block; height: 100%; }
+  .bar .o { background: var(--optical); } .bar .s { background: var(--sar); } .bar .d { background: var(--dem); }
+  .shift-nums { font-family: 'IBM Plex Mono', monospace; font-size: .76rem; color: var(--ink-soft); margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: .84rem; color: var(--ink-soft); margin-top: 14px; }
+  .legend i { display: inline-block; width: 11px; height: 11px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+  .shift figcaption { font-size: .86rem; color: var(--ink-soft); margin-top: 12px; }
+
+  section { padding: 64px 0; border-top: 1px solid var(--line); }
+  .section-head { display: flex; flex-direction: column; gap: 10px; margin-bottom: 30px; }
+  .section-head p { color: var(--ink-soft); }
+
+  .problem { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .problem div { padding: 20px 0 0; border-top: 3px solid var(--line); }
+  .problem div.hot { border-top-color: var(--optical); }
+  .problem .big { font-family: 'Fraunces', serif; font-size: 2.3rem; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
+  .problem p { margin-top: 10px; font-size: .97rem; color: var(--ink-soft); }
+
+  figure { margin: 0; }
+  .diagram { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 18px; overflow-x: auto; }
+  .diagram img { min-width: 720px; }
+  .figcap { font-size: .88rem; color: var(--ink-soft); margin-top: 12px; max-width: 80ch; }
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 26px; margin-top: 34px; }
+  .steps .n { font-family: 'IBM Plex Mono', monospace; font-size: .78rem; color: var(--ink-soft); }
+  .steps h3 { margin: 6px 0 8px; }
+  .steps p { font-size: .97rem; color: var(--ink-soft); }
+
+  .table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; font-size: .95rem; font-variant-numeric: tabular-nums; }
+  th, td { padding: 11px 16px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; }
+  thead th { font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-soft); font-weight: 600; }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.hl { font-weight: 700; }
+  .note { font-size: .88rem; color: var(--ink-soft); margin-top: 12px; max-width: 80ch; }
+  .split-figs { display: grid; grid-template-columns: 1fr; gap: 34px; margin-top: 40px; }
+  .fig-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .fig-card img { border-radius: 6px; background: #fff; }
+  .pending { margin-top: 26px; padding: 14px 18px; border: 1px dashed var(--line); border-radius: 10px; font-size: .92rem; color: var(--ink-soft); }
+
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin-bottom: 28px; }
+  .stat { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
+  .stat .v { font-family: 'Fraunces', serif; font-size: 1.8rem; font-weight: 600; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .stat .k { font-size: .86rem; color: var(--ink-soft); margin-top: 4px; }
+
+  pre { background: var(--code-bg); border-radius: 10px; padding: 16px 18px; overflow-x: auto; margin: 0; font-size: .88rem; line-height: 1.55; }
+  .use-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+  .use-grid h3 { margin-bottom: 12px; }
+
+  .limits { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px 32px; }
+  .limits li { color: var(--ink-soft); }
+  .limits li b { color: var(--ink); font-weight: 600; }
+
+  footer { border-top: 1px solid var(--line); padding: 34px 0 54px; font-size: .9rem; color: var(--ink-soft); }
+  footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 14px; }
+
+  @media (max-width: 900px) {
+    .hero-grid, .use-grid { grid-template-columns: 1fr; }
+    .problem, .steps { grid-template-columns: 1fr; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .limits { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<nav aria-label="Main">
+  <div class="wrap">
+    <a class="brand" href="#top">AETHER</a>
+    <ul>
+      <li><a href="#problem">Problem</a></li>
+      <li><a href="#how">How it works</a></li>
+      <li><a href="#results">Results</a></li>
+      <li><a href="#data">Dataset</a></li>
+      <li><a href="#use">Use it</a></li>
+    </ul>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wrap hero-grid">
+    <div>
+      <span class="eyebrow">Sentinel-2 · Sentinel-1 · Copernicus DEM</span>
+      <h1>Land-cover maps that <em>see through cloud</em></h1>
+      <p class="lede">AETHER maps land cover, roads and buildings from optical, radar and elevation data together, and decides, pixel by pixel, which sensor to trust. When cloud hides the optical image, it switches to radar.</p>
+      <div class="cta">
+        <a class="btn primary" href="https://github.com/Praneeth1-O-1/AETHER">View the code</a>
+        <a class="btn ghost" href="https://github.com/Praneeth1-O-1/AETHER/blob/main/docs/ARCHITECTURE.md">Read the architecture</a>
+      </div>
+    </div>
+    <figure class="shift" aria-label="Per-pixel fusion weights under clear, 50% and 100% cloud">
+      <div class="shift-row">
+        <div class="shift-label">Clear sky</div>
+        <div><div class="bar"><span class="o" style="width:89.5%"></span><span class="s" style="width:7.7%"></span><span class="d" style="width:2.8%"></span></div>
+        <div class="shift-nums">0.895 / 0.077 / 0.028</div></div>
+      </div>
+      <div class="shift-row">
+        <div class="shift-label">50% cloud</div>
+        <div><div class="bar"><span class="o" style="width:76.1%"></span><span class="s" style="width:17.7%"></span><span class="d" style="width:6.2%"></span></div>
+        <div class="shift-nums">0.761 / 0.177 / 0.063</div></div>
+      </div>
+      <div class="shift-row">
+        <div class="shift-label">100% cloud</div>
+        <div><div class="bar"><span class="s" style="width:68.6%"></span><span class="d" style="width:31.4%"></span></div>
+        <div class="shift-nums">0.000 / 0.686 / 0.314</div></div>
+      </div>
+      <div class="legend"><span><i style="background:var(--optical)"></i>Optical</span><span><i style="background:var(--sar)"></i>Radar</span><span><i style="background:var(--dem)"></i>Elevation</span></div>
+      <figcaption>Mean fusion weight given to each sensor on held-out validation locations. Nobody told the model these ratios; it learned them.</figcaption>
+    </figure>
+  </div>
+</header>
+
+<main>
+<section id="problem">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">The problem</span>
+      <h2>Optical satellites go blind under cloud — and fused models don't notice</h2>
+      <p>Radar sees through cloud, so combining sensors should fix this. In practice a network trained mostly on clear imagery learns that optical alone is enough, and ignores everything else.</p>
+    </div>
+    <div class="problem">
+      <div class="hot"><div class="big">95.5%</div><p>of tiles in our first archive had essentially cloud-free optical imagery, so the model never needed radar.</p></div>
+      <div><div class="big">0.19</div><p>was that model's radar weight, with or without cloud. The fusion never adapted.</p></div>
+      <div><div class="big">1 date</div><p>of radar per tile. A single acquisition leaves radar alone much weaker than optical, so the model has no easy reason to use it.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">How it works</span>
+      <h2>Three encoders, one presence-aware fusion, three maps</h2>
+    </div>
+    <figure>
+      <div class="diagram"><img src="assets/architecture.svg" alt="Three modality-specific encoders feed CrossModalAlphaFusion, which outputs per-pixel weights; a skip-connected decoder drives land-cover, road and building heads."></div>
+      <p class="figcap">19.37 M parameters, 31.4 GFLOPs per 256 × 256 tile. Each sensor gets its own encoder; the fusion module weights them per pixel; one decoder feeds all three tasks.</p>
+    </figure>
+    <div class="steps">
+      <div><span class="n">01 · encode</span><h3>A specialist per sensor</h3><p>ConvNeXt-Tiny for optical, ResNet-18 for radar, a small CNN for elevation. Each maps its sensor into the same 256-channel space.</p></div>
+      <div><span class="n">02 · fuse</span><h3>Absent means absent</h3><p>A missing sensor gets no embedding, no attention, zero weight and no skip connection. A per-pixel softmax splits trust among the sensors that are actually there.</p></div>
+      <div><span class="n">03 · train</span><h3>Teach it that optical fails</h3><p>Real cloud masks are injected into clear tiles, whose labels stay correct underneath, alongside sensor dropout and per-sensor auxiliary losses.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="results">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Results</span>
+      <h2>Graceful degradation, not collapse</h2>
+      <p>Validation results on 1,894 tiles from locations the model never trained on.</p>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Condition</th><th>LULC accuracy</th><th>mIoU</th><th>Optical weight</th><th>Radar weight</th><th>Elevation weight</th></tr></thead>
+        <tbody>
+          <tr><td>Clear sky</td><td>0.833</td><td>0.657</td><td>0.895</td><td>0.077</td><td>0.028</td></tr>
+          <tr><td>50% cloud</td><td>0.783</td><td>0.587</td><td>0.761</td><td>0.177</td><td>0.063</td></tr>
+          <tr><td>100% cloud</td><td>0.594</td><td>0.363</td><td>0.000</td><td class="hl">0.686</td><td>0.314</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">Road IoU 0.281 and building IoU 0.267 in clear sky (untuned 0.5 threshold).</p>
+
+    <div class="split-figs">
+      <figure class="fig-card">
+        <img src="assets/fig_combos.png" alt="One cloudy tile and one clear tile predicted by every combination of optical, radar and elevation input." loading="lazy">
+        <p class="figcap">The same model run with every combination of sensors. On the cloudy tile (top), radar alone matches all three sensors at 0.98 pixel accuracy. On the clear tile (bottom), optical carries the fine detail; radar alone recovers the layout but not the vegetation texture.</p>
+      </figure>
+      <figure class="fig-card">
+        <img src="assets/fig_qualitative.png" alt="Inputs, ground truth, prediction and fusion-weight map for a clear tile in India and a cloudy tile in Vietnam." loading="lazy">
+        <p class="figcap">The fusion-weight map (right column, red = optical, green = radar, blue = elevation) is almost pure optical in clear sky, and turns toward radar and elevation under cloud.</p>
+      </figure>
+    </div>
+    <div class="pending">Held-out test-set results, the full sensor-combination ablation, the cloud-degradation curve and GPU benchmarks are being finalised and will be published here.</div>
+  </div>
+</section>
+
+<section id="data">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Dataset</span>
+      <h2>A multi-continent, cloud-aware archive</h2>
+      <p>Co-registered 256 × 256 tiles at 10 m from Africa, Asia and Latin America, 2017–2023, split by location so test regions are never seen in training.</p>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="v">19,149</div><div class="k">tiles</div></div>
+      <div class="stat"><div class="v">1,372</div><div class="k">locations</div></div>
+      <div class="stat"><div class="v">6,807</div><div class="k">cloud-affected variants</div></div>
+      <div class="stat"><div class="v">3</div><div class="k">sensors + validity masks</div></div>
+    </div>
+    <p>Labels: Dynamic World land cover (9 classes), OpenStreetMap roads, building-footprint coverage. Unlabelled pixels are masked out of every loss rather than counted as negatives. The archive is on Kaggle as <a href="https://www.kaggle.com/datasets/kirethikb/aether-real-cloud-multimodal-eo"><code>aether-real-cloud-multimodal-eo</code></a>.</p>
+  </div>
+</section>
+
+<section id="use">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Use it</span>
+      <h2>Run AETHER</h2>
+    </div>
+    <div class="use-grid">
+      <div>
+        <h3>Install</h3>
+<pre><code>git clone https://github.com/Praneeth1-O-1/AETHER.git
+cd AETHER
+pip install -r requirements.txt</code></pre>
+      </div>
+      <div>
+        <h3>Train, predict, evaluate</h3>
+<pre><code># set DATASET_ROOT and CHECKPOINT in settings.py
+python run_train.py
+python run_predict.py
+python run_evaluate.py</code></pre>
+      </div>
+    </div>
+    <p class="note">Full reference: <a href="https://github.com/Praneeth1-O-1/AETHER#readme">README</a> · <a href="https://github.com/Praneeth1-O-1/AETHER/blob/main/docs/ARCHITECTURE.md">architecture and training details</a>.</p>
+  </div>
+</section>
+
+<section id="limits">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Limitations</span>
+      <h2>What it doesn't do yet</h2>
+    </div>
+    <ul class="limits">
+      <li><b>Single-date radar.</b> One Sentinel-1 acquisition per tile limits how much radar alone can recover.</li>
+      <li><b>Roads and buildings.</b> IoU stays below 0.3; thin structures remain hard at 10 m.</li>
+      <li><b>Orbit direction.</b> Not recorded in the archive, so that radar input is unused.</li>
+      <li><b>Validation numbers.</b> Test-set results are being finalised.</li>
+    </ul>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>AETHER · Group 108 · [Institution]</span>
+    <span><a href="https://github.com/Praneeth1-O-1/AETHER">GitHub</a> · <a href="https://www.kaggle.com/datasets/kirethikb/aether-real-cloud-multimodal-eo">Dataset</a></span>
+  </div>
+</footer>
+
+</body>
+</html>
