@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>AETHER User Study — Group 108</title>
+<style>
+  @page { size: A4; margin: 20mm 20mm 22mm 20mm; @bottom-center { content: "Page " counter(page); font-size: 8pt; } }
+  body { font-family: "Times New Roman", Times, serif; font-size: 11pt; line-height: 1.4; color: #0b0b0b; margin: 0; }
+  h1 { font-size: 18pt; text-align: center; margin: 0 0 4px; }
+  .sub { text-align: center; color: #52514e; margin-bottom: 16px; }
+  h2 { font-size: 12.5pt; border-bottom: 1px solid #0b0b0b; padding-bottom: 2px; margin: 18px 0 7px; break-after: avoid; }
+  h3 { font-size: 11pt; font-style: italic; font-weight: normal; margin: 10px 0 4px; }
+  p { margin: 0 0 7px; text-align: justify; }
+  ol, ul { margin: 2px 0 8px; padding-left: 1.4em; } li { margin-bottom: 3px; }
+  table { border-collapse: collapse; width: 100%; font-size: 9.5pt; margin: 6px 0 10px; }
+  th, td { border: 1px solid #9a9993; padding: 4px 6px; text-align: left; vertical-align: top; }
+  th { background: #f0efea; }
+  .box { border: 1px solid #9a9993; background: #f7f6f2; padding: 8px 11px; margin: 8px 0; break-inside: avoid; }
+  .todo { background: #fff4d6; border: 1px dashed #c48a00; font-family: Helvetica, Arial, sans-serif; font-size: 8.5pt; padding: 5px 8px; margin: 8px 0; }
+</style>
+</head>
+<body>
+
+<h1>User Study: Usefulness and Trustworthiness of AETHER's Cloud-Robust Maps</h1>
+<div class="sub">Group 108 · [Team names] · [Institution] · Study plan, questionnaire and analysis</div>
+
+<div class="todo">Sections 1–8 are the plan and instruments, ready to run. Section 9 (results) stays empty until real responses are collected. Do not fill it with estimated or example data.</div>
+
+<h2>1. Purpose</h2>
+<p>AETHER produces land-cover, road and building maps from optical, radar and elevation satellite data, and keeps producing them when cloud hides the optical image. It also outputs a <b>reliance map</b> showing which sensor each pixel's prediction relied on. Accuracy metrics measure correctness against labels. They do not show whether prospective users find the maps plausible, whether the reliance map helps them decide what to trust, or which applications they would use it for. This study asks those questions directly.</p>
+
+<h2>2. Research Questions and Hypotheses</h2>
+<table>
+<tr><th>Research question</th><th>Hypothesis</th><th>Measured by</th></tr>
+<tr><td>RQ1. Do users judge AETHER's maps as plausible, including under cloud?</td><td>H1: median rating ≥ 4 for clear tiles; cloudy-tile ratings lower but ≥ 3</td><td>B1–B6</td></tr>
+<tr><td>RQ2. Does the reliance map change how much users trust a map?</td><td>H2: trust is higher with the reliance map than without it</td><td>C1 vs C2 (paired)</td></tr>
+<tr><td>RQ3. Is the reliance map understandable and wanted?</td><td>H3: ≥ 60% agree (4–5) with C3–C5</td><td>C3–C5</td></tr>
+<tr><td>RQ4. Which applications matter, and would users adopt the tool?</td><td>— (exploratory)</td><td>D1–D4, E1–E2</td></tr>
+</table>
+
+<h2>3. Participants</h2>
+<ul>
+<li><b>Target:</b> at least 30 participants (the course's recommended minimum).</li>
+<li><b>Who:</b> students and professionals likely to use land-cover data: remote sensing / GIS, civil and urban planning, agriculture and environment, and AI/ML students as a contrasting group. Profile questions A1–A4 record background and familiarity.</li>
+<li><b>Recruitment:</b> department mailing lists, GIS and remote-sensing student groups, and classmates from related courses. Participation is voluntary and unpaid.</li>
+<li><b>Exclusion:</b> members of Group 108 and anyone who has worked on AETHER.</li>
+</ul>
+
+<h2>4. Materials</h2>
+<p>Six tiles from the <b>held-out test split</b> (locations never seen in training): three clear and three cloud-covered, chosen to span different land-cover types and continents. For each tile the form shows:</p>
+<ol>
+<li>the Sentinel-2 true-colour image;</li>
+<li>AETHER's predicted land-cover map with a class legend;</li>
+<li>for the trust questions (Section C), the same map shown <i>first alone</i> and <i>then with</i> its reliance map (red = optical, green = radar, blue = elevation), with a one-sentence explanation.</li>
+</ol>
+<p>Tiles are selected by a fixed rule (first three clear and first three cloudy test tiles in sorted order whose labelled area exceeds 80%) rather than hand-picked, so the materials don't favour good predictions.</p>
+<div class="todo">The six tile images are generated on Kaggle from the epoch-41 model (the local machine is not used for model runs). Ground-truth panels are <i>not</i> shown to participants. The form tests user perception, not label agreement.</div>
+
+<h2>5. Procedure</h2>
+<ol>
+<li>The participant opens the Google Form (about 12–15 minutes) and reads the information sheet and consent statement (Section 7).</li>
+<li><b>Section A</b>: background and familiarity.</li>
+<li><b>Section B</b>: for each of the six tiles, rate how well (clear) or how plausibly (cloudy) the map matches the image. Tile order is fixed to keep the form simple. Clear tiles come first so participants learn the legend before facing cloud.</li>
+<li><b>Section C</b>: one tile shown without, then with, its reliance map. Trust is rated before and after (C1, C2), followed by three statements about the reliance map.</li>
+<li><b>Sections D–E</b>: usefulness, applications, likelihood of use, and two open questions.</li>
+</ol>
+
+<h2>6. Measures</h2>
+<p>All rating items use a 1–5 scale with labelled endpoints. The full question list, with codes, is in <code>questions.csv</code>. Each Google Form question title must start with its code in brackets (e.g. <code>[B1] …</code>) so the analysis script can match responses.</p>
+<table>
+<tr><th>Section</th><th>Items</th><th>Construct</th></tr>
+<tr><td>A</td><td>A1–A4</td><td>Role, field, familiarity with imagery and land-cover maps</td></tr>
+<tr><td>B</td><td>B1–B3 / B4–B6</td><td>Perceived map quality, clear / cloudy</td></tr>
+<tr><td>C</td><td>C1, C2</td><td>Trust without / with the reliance map (paired)</td></tr>
+<tr><td>C</td><td>C3–C5</td><td>Usefulness, clarity and demand for the reliance map</td></tr>
+<tr><td>D</td><td>D1–D4</td><td>Perceived usefulness, applications, intention to use</td></tr>
+<tr><td>E</td><td>E1, E2</td><td>Open feedback</td></tr>
+</table>
+
+<h2>7. Ethics and Consent</h2>
+<div class="box">
+<b>Information and consent text (first page of the form):</b><br>
+"This study is part of a Group 108 student project at [Institution]. We will show you satellite images and maps produced by our model and ask for your opinions (about 15 minutes). Participation is voluntary; you may stop at any time. We do not collect your name or email address, and responses are reported only in aggregate. By continuing, you confirm you are 18 or older and agree to take part."
+</div>
+<ul>
+<li>Turn off email collection in the form settings; do not ask for names.</li>
+<li>Check whether your institution requires ethics-committee approval for anonymous opinion surveys, and obtain it before collecting data if so.</li>
+<li>Store the response CSV privately; publish only the aggregated results.</li>
+</ul>
+
+<h2>8. Analysis Plan</h2>
+<p>Run <code>python analyze_user_study.py responses.csv --out results/</code> on the Google Forms CSV export. The script reports:</p>
+<ul>
+<li><b>Descriptives</b> per item: n, mean, median, standard deviation and % agreeing (4–5). Medians are primary, because the data are ordinal.</li>
+<li><b>H2</b>: Wilcoxon signed-rank test, C1 vs C2 (paired), with effect size r = |z| / √n. α = 0.05.</li>
+<li><b>H1</b>: per-participant mean of clear tiles vs cloudy tiles, Wilcoxon signed-rank.</li>
+<li><b>Reliability</b>: Cronbach's α for the map-quality, reliance-map and usefulness item groups. Values ≥ 0.7 support averaging the items.</li>
+<li><b>Applications</b>: counts for D3.</li>
+<li><b>Open answers</b>: E1/E2 coded into themes by two team members independently, with disagreements resolved by discussion; report the themes with counts and short quotes.</li>
+<li>A diverging stacked bar chart of all rating items (<code>results/likert.png</code>).</li>
+</ul>
+<p><b>Limitations to report:</b> convenience sample, mostly students; a single tile for the trust comparison; fixed item order (order effects are not controlled); and perceived plausibility is not the same as measured accuracy.</p>
+
+<h2>9. Results</h2>
+<div class="todo">To be completed from real responses only: participant profile (A1–A4), Table of item descriptives, H1/H2 test results, Cronbach's α, Likert chart, D3 counts, and open-feedback themes.</div>
+
+<h2>10. Timeline</h2>
+<table>
+<tr><th>Step</th><th>Duration</th></tr>
+<tr><td>Generate tile images on Kaggle; build the Google Form from questions.csv</td><td>1 day</td></tr>
+<tr><td>Pilot with 3 people (not counted); fix unclear wording</td><td>1 day</td></tr>
+<tr><td>Data collection (target ≥ 30)</td><td>5–7 days</td></tr>
+<tr><td>Analysis and write-up</td><td>1–2 days</td></tr>
+</table>
+
+</body>
+</html>

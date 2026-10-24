@@ -1,0 +1,22 @@
+code,section,question,type,options
+A1,A. About you,What best describes you?,single choice,UG student;PG student / researcher;Working professional;Other
+A2,A. About you,Which field are you in?,single choice,Remote sensing / GIS;Civil / urban planning;Agriculture / environment;Computer science / AI;Other
+A3,A. About you,How familiar are you with satellite imagery?,scale 1-5,1 = never used it;5 = use it regularly
+A4,A. About you,How familiar are you with land-cover maps?,scale 1-5,1 = not at all;5 = very familiar
+B1,B. Map quality (clear tile 1),How well does the predicted land-cover map match what you see in the satellite image?,scale 1-5,1 = very poorly;5 = very well
+B2,B. Map quality (clear tile 2),How well does the predicted land-cover map match what you see in the satellite image?,scale 1-5,1 = very poorly;5 = very well
+B3,B. Map quality (clear tile 3),How well does the predicted land-cover map match what you see in the satellite image?,scale 1-5,1 = very poorly;5 = very well
+B4,B. Map quality (cloudy tile 1),The optical image is cloud-covered. How plausible is the predicted land-cover map?,scale 1-5,1 = not plausible;5 = very plausible
+B5,B. Map quality (cloudy tile 2),The optical image is cloud-covered. How plausible is the predicted land-cover map?,scale 1-5,1 = not plausible;5 = very plausible
+B6,B. Map quality (cloudy tile 3),The optical image is cloud-covered. How plausible is the predicted land-cover map?,scale 1-5,1 = not plausible;5 = very plausible
+C1,C. Trust without the reliance map,"Looking only at the predicted map, how much would you trust it for a planning decision (e.g. flagging cropland for a survey)?",scale 1-5,1 = not at all;5 = completely
+C2,C. Trust with the reliance map,"Now also looking at the reliance map (which sensor each pixel relied on), how much would you trust the same map?",scale 1-5,1 = not at all;5 = completely
+C3,C. Reliance map,The reliance map helps me see which parts of the map to double-check.,scale 1-5,1 = strongly disagree;5 = strongly agree
+C4,C. Reliance map,The reliance map is easy to understand.,scale 1-5,1 = strongly disagree;5 = strongly agree
+C5,C. Reliance map,I would want a reliance map included with any land-cover product I use.,scale 1-5,1 = strongly disagree;5 = strongly agree
+D1,D. Usefulness,A tool that keeps producing maps under cloud would be useful in my work or studies.,scale 1-5,1 = strongly disagree;5 = strongly agree
+D2,D. Usefulness,Road and building maps from the same tool would be useful.,scale 1-5,1 = strongly disagree;5 = strongly agree
+D3,D. Usefulness,Which uses matter most to you? (choose up to 3),multiple choice,Crop monitoring;Flood / disaster mapping;Urban growth;Road-network updates;Forest / environment monitoring;Other
+D4,D. Usefulness,How likely would you be to use AETHER if it were available as a tool?,scale 1-5,1 = very unlikely;5 = very likely
+E1,E. Feedback,What was most confusing or least convincing about the outputs?,paragraph,
+E2,E. Feedback,What one improvement would make this most useful to you?,paragraph,
