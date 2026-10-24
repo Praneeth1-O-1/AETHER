@@ -120,4 +120,4 @@ Group 108 — [names]
 
 ## License
 
-[To be decided.] Dataset labels carry their own licenses (OpenStreetMap: ODbL; Dynamic World: CC BY 4.0).
+Code: [MIT](LICENSE). Dataset labels carry their own licenses (OpenStreetMap: ODbL; Dynamic World: CC BY 4.0).
