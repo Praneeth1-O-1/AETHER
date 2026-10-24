@@ -50,6 +50,8 @@ from inference import load_model, to_device  # noqa: E402
 from utils.metrics import BinaryIoU, ConfusionMatrix  # noqa: E402
 
 
+from data.dataset import leak_free  # noqa: E402
+
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--checkpoint", type=str, default="checkpoints/best.pt")
@@ -60,6 +62,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--num-workers", type=int, default=4)
     p.add_argument("--road-threshold", type=float, default=0.60)
     p.add_argument("--building-threshold", type=float, default=0.71)
+    p.add_argument("--leak-free", action="store_true",
+                   help="Drop eval tiles whose coordinates also occur in another split.")
     p.add_argument("--output", type=str, default="outputs/full_evaluation.json")
     return p.parse_args()
 
@@ -223,9 +227,28 @@ def main() -> None:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = load_model(args.config, args.checkpoint, device)
 
-    records = build_manifest(Path(args.dataset_root))
+    dataset_root = Path(args.dataset_root)
+    if not dataset_root.exists():
+        sys.exit(
+            f"\nERROR: Dataset root does not exist: {dataset_root}\n"
+            "  The tile archive is only present in the environment where it was\n"
+            "  acquired (e.g. Kaggle). Run this evaluation there:\n\n"
+            "    python scripts/evaluate_full.py \\\n"
+            "        --checkpoint /kaggle/working/checkpoints/best.pt \\\n"
+            "        --dataset-root /kaggle/input/<dataset-slug>/strict\n"
+        )
+
+    records = build_manifest(dataset_root)
+    if not records:
+        sys.exit(
+            f"\nERROR: No tiles found under {dataset_root}.\n"
+            "  Expected layout: <root>/<aoi_name>/<tile_id>/meta.json\n"
+        )
     train, val, test = location_split(records)
     chosen = {"train": train, "val": val, "test": test}[args.split]
+    if args.leak_free:
+        others = [s for name, s in (("train", train), ("val", val), ("test", test)) if name != args.split]
+        chosen = leak_free(chosen, *others)
     print(f"\nSplit '{args.split}': {len(chosen)} tiles / "
           f"{len({r.location for r in chosen})} held-out locations")
 

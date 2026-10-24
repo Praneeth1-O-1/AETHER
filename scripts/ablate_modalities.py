@@ -55,6 +55,8 @@ ABLATIONS = {
 }
 
 
+from data.dataset import leak_free  # noqa: E402
+
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--checkpoint", type=str, default="checkpoints/best.pt")
@@ -65,6 +67,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--num-workers", type=int, default=8)
     p.add_argument("--road-threshold", type=float, default=0.60)
     p.add_argument("--building-threshold", type=float, default=0.71)
+    p.add_argument("--leak-free", action="store_true",
+                   help="Drop eval tiles whose coordinates also occur in another split.")
     p.add_argument("--output", type=str, default="outputs/modality_ablation.json")
     return p.parse_args()
 
@@ -129,9 +133,18 @@ def main() -> None:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = load_model(args.config, args.checkpoint, device)
 
-    records = build_manifest(Path(args.dataset_root))
-    _, val_rec, test_rec = location_split(records)
+    dataset_root = Path(args.dataset_root)
+    if not dataset_root.exists():
+        sys.exit(
+            f"\nERROR: Dataset root does not exist: {dataset_root}\n"
+            f"  If running locally, available tiles are under: datasets/AETHER_DATASET/data/strict\n"
+            f"  If running on Kaggle, specify: --dataset-root /kaggle/input/aether-real-cloud-multimodal-eo"
+        )
+    records = build_manifest(dataset_root)
+    train_rec, val_rec, test_rec = location_split(records)
     chosen = {"val": val_rec, "test": test_rec}[args.split]
+    if args.leak_free:
+        chosen = leak_free(chosen, train_rec, val_rec if args.split == "test" else test_rec)
     loader = DataLoader(
         AETHERTileDataset(chosen, augment=False), batch_size=args.batch_size,
         shuffle=False, num_workers=args.num_workers, pin_memory=True,

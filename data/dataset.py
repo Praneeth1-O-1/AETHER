@@ -40,7 +40,21 @@ from pathlib import Path
 import numpy as np
 import rasterio
 import torch
-from scipy.ndimage import uniform_filter
+try:
+    from scipy.ndimage import uniform_filter
+except ImportError:
+    def uniform_filter(arr: np.ndarray, size=(1, 5, 5), mode: str = "nearest") -> np.ndarray:
+        """Pure-numpy fallback for 2D boxcar filter when scipy is not installed."""
+        w = size[-1] if isinstance(size, (tuple, list)) else int(size)
+        pad = w // 2
+        padded = np.pad(arr, ((0, 0), (pad, pad), (pad, pad)), mode="edge")
+        out = np.empty_like(arr)
+        H, W = arr.shape[1], arr.shape[2]
+        for c in range(arr.shape[0]):
+            cs = np.cumsum(np.cumsum(padded[c], axis=0), axis=1)
+            cs = np.pad(cs, ((1, 0), (1, 0)), mode="constant", constant_values=0)
+            out[c] = (cs[w:H + w, w:W + w] - cs[0:H, w:W + w] - cs[w:H + w, 0:W] + cs[0:H, 0:W]) / (w * w)
+        return out
 from torch.utils.data import Dataset
 
 from data.clouds import CloudInjector
@@ -232,9 +246,20 @@ def build_manifest(dataset_root: Path, cache: Path | None = None,
     # country-level folder (root/aether_nepal/<AOI>/<tile>/inputs.tif) that
     # earlier archives didn't have. Depth-agnostic discovery means a future
     # archive with yet another grouping level won't silently find zero tiles.
+    if not dataset_root.exists():
+        raise FileNotFoundError(
+            f"Dataset root does not exist: {dataset_root}\n"
+            f"  If running locally, tiles are located under 'datasets/AETHER_DATASET/data/strict'.\n"
+            f"  If running on Kaggle, specify '--dataset-root /kaggle/input/aether-real-cloud-multimodal-eo'."
+        )
+
     tiles = sorted(p.parent for p in dataset_root.rglob("inputs.tif"))
     if not tiles:
-        raise FileNotFoundError(f"No tiles found under {dataset_root}")
+        raise FileNotFoundError(
+            f"No tiles found under {dataset_root}.\n"
+            f"  If running locally, tiles are located under 'datasets/AETHER_DATASET/data/strict'.\n"
+            f"  If running on Kaggle, specify '--dataset-root /kaggle/input/aether-real-cloud-multimodal-eo'."
+        )
 
     records: list[TileRecord] = []
     for t in tiles:
@@ -302,6 +327,33 @@ def location_split(
         else:
             train.append(r)
     return train, val, test
+
+
+_COORD_RE = re.compile(r"[ns]\d{4}_[ew]\d{5}")
+
+
+def coordinate_of(location: str) -> str:
+    """Physical coordinate token of a location key, e.g. 'n2824_e08148'.
+
+    Location keys also carry a g_/c_ prefix and a region spelling that varies
+    between hyphen and underscore, so two keys can name the same ground.
+    """
+    m = _COORD_RE.search(location)
+    return m.group(0) if m else location
+
+
+def leak_free(eval_records: list[TileRecord],
+              *other_splits: list[TileRecord]) -> list[TileRecord]:
+    """Drop evaluation tiles whose coordinates also appear in another split.
+
+    location_split hashes the full location key, so a standard tile and its
+    cloud variant at the same coordinates can land in different splits. The
+    split itself cannot be re-keyed for an already-trained checkpoint (that
+    would move training locations into the test set), so evaluation reports
+    this clean subset alongside the full split instead.
+    """
+    seen = {coordinate_of(r.location) for split in other_splits for r in split}
+    return [r for r in eval_records if coordinate_of(r.location) not in seen]
 
 
 # =========================================================================

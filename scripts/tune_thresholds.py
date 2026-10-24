@@ -47,6 +47,8 @@ from inference import load_model, to_device  # noqa: E402
 from utils.metrics import ConfusionMatrix  # noqa: E402
 
 
+from data.dataset import leak_free  # noqa: E402
+
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--checkpoint", type=str, default="checkpoints/best.pt")
@@ -54,6 +56,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--dataset-root", type=str, default=str(S.DATASET_ROOT))
     p.add_argument("--batch-size", type=int, default=16)
     p.add_argument("--num-workers", type=int, default=6)
+    p.add_argument("--leak-free", action="store_true",
+                   help="Drop eval tiles whose coordinates also occur in another split.")
     p.add_argument("--output", type=str, default="outputs/final_metrics.json")
     return p.parse_args()
 
@@ -137,8 +141,17 @@ def main() -> None:
     model = load_model(args.config, args.checkpoint, device)
     grid = torch.linspace(0.05, 0.95, 91)
 
-    records = build_manifest(Path(args.dataset_root))
-    _, val_rec, test_rec = location_split(records)
+    dataset_root = Path(args.dataset_root)
+    if not dataset_root.exists():
+        sys.exit(
+            f"\nERROR: Dataset root does not exist: {dataset_root}\n"
+            f"  If running locally, available tiles are under: datasets/AETHER_DATASET/data/strict\n"
+            f"  If running on Kaggle, specify: --dataset-root /kaggle/input/aether-real-cloud-multimodal-eo"
+        )
+    records = build_manifest(dataset_root)
+    train_rec, val_rec, test_rec = location_split(records)
+    if args.leak_free:
+        test_rec = leak_free(test_rec, train_rec, val_rec)
 
     print(f"\n=== VAL sweep ({len(val_rec)} tiles / {len({r.location for r in val_rec})} locations) ===")
     v_road, v_bld, v_conf = sweep_split(model, make_loader(val_rec, args), device, grid)

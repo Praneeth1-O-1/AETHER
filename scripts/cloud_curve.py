@@ -68,6 +68,8 @@ ABLATIONS = {
 }
 
 
+from data.dataset import leak_free  # noqa: E402
+
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="LULC accuracy as a function of cloud cover.")
     p.add_argument("--config", type=str, default="configs/model.yaml")
@@ -80,6 +82,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--batch-size", type=int, default=16)
     p.add_argument("--num-workers", type=int, default=6)
     p.add_argument("--device", type=str, default="auto")
+    p.add_argument("--leak-free", action="store_true",
+                   help="Drop eval tiles whose coordinates also occur in another split.")
     p.add_argument("--output", type=str, default="outputs/cloud_curve.json")
     return p.parse_args()
 
@@ -119,9 +123,18 @@ def main() -> None:
     device = get_device(args.device)
     model = load_model(args.config, args.checkpoint, device)
 
-    records = build_manifest(Path(args.dataset_root))
+    dataset_root = Path(args.dataset_root)
+    if not dataset_root.exists():
+        sys.exit(
+            f"\nERROR: Dataset root does not exist: {dataset_root}\n"
+            f"  If running locally, available tiles are under: datasets/AETHER_DATASET/data/strict\n"
+            f"  If running on Kaggle, specify: --dataset-root /kaggle/input/aether-real-cloud-multimodal-eo"
+        )
+    records = build_manifest(dataset_root)
     train_rec, val_rec, test_rec = location_split(records, args.val_frac, args.test_frac)
     chosen = {"val": val_rec, "test": test_rec}[args.split]
+    if args.leak_free:
+        chosen = leak_free(chosen, train_rec, val_rec if args.split == "test" else test_rec)
     logger.info(f"{args.split}: {len(chosen)} tiles / {len({r.location for r in chosen})} locations")
 
     # Same bank the training run used, so injected cloud looks the same at
