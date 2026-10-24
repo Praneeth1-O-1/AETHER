@@ -145,3 +145,25 @@ checkpoints_*/
 # LibreOffice / OpenOffice lock files
 # ------------------------------------------------------------
 .~lock.*#
+
+# ------------------------------------------------------------
+# Secrets and credentials -- never commit (this repo is public)
+# ------------------------------------------------------------
+*.key
+*.pem
+kaggle.json
+.kaggle/
+
+# ------------------------------------------------------------
+# Local caches and run artifacts
+# ------------------------------------------------------------
+.manifest_cache/
+results/kaggle_run/session_log.txt
+results/kaggle_run/manifest.json
+
+# ------------------------------------------------------------
+# Unpublished drafts -- keep private until the IP cell advises
+# (a public patent disclosure would block the patent application)
+# ------------------------------------------------------------
+patent/
+paper/G108_*

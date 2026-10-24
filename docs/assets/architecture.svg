@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 250" width="1000" height="250" font-family="Helvetica, Arial, sans-serif" role="img" aria-label="AETHER architecture: three modality-specific encoders feed CrossModalAlphaFusion, which produces per-pixel alpha weights; the fused feature passes through a skip-connected decoder to LULC, road and building heads.">
+  <rect width="1000" height="250" fill="#ffffff"/><defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#333"/></marker></defs>
+  <g font-size="12" fill="#0b0b0b">
+    <!-- inputs -->
+    <rect x="10" y="20" width="120" height="48" rx="4" fill="#e8f0fb" stroke="#2a78d6"/>
+    <text x="70" y="40" text-anchor="middle">Sentinel-2</text><text x="70" y="56" text-anchor="middle" font-size="10">10 bands + validity</text>
+    <rect x="10" y="100" width="120" height="48" rx="4" fill="#fdeee7" stroke="#eb6834"/>
+    <text x="70" y="120" text-anchor="middle">Sentinel-1</text><text x="70" y="136" text-anchor="middle" font-size="10">VV, VH, +5 derived</text>
+    <rect x="10" y="180" width="120" height="48" rx="4" fill="#e6f6ef" stroke="#1baf7a"/>
+    <text x="70" y="200" text-anchor="middle">Copernicus DEM</text><text x="70" y="216" text-anchor="middle" font-size="10">elev., relief, validity</text>
+    <!-- encoders -->
+    <rect x="165" y="20" width="150" height="48" rx="4" fill="#fff" stroke="#2a78d6"/>
+    <text x="240" y="40" text-anchor="middle">ConvNeXt-T (stage 3)</text><text x="240" y="56" text-anchor="middle" font-size="10">ImageNet init</text>
+    <rect x="165" y="100" width="150" height="48" rx="4" fill="#fff" stroke="#eb6834"/>
+    <text x="240" y="120" text-anchor="middle">ResNet-18 (layer 3)</text><text x="240" y="136" text-anchor="middle" font-size="10">ImageNet init</text>
+    <rect x="165" y="180" width="150" height="48" rx="4" fill="#fff" stroke="#1baf7a"/>
+    <text x="240" y="200" text-anchor="middle">4-stage strided CNN</text><text x="240" y="216" text-anchor="middle" font-size="10">from scratch</text>
+    <g stroke="#333" fill="none" marker-end="url(#ar)">
+      <line x1="130" y1="44" x2="163" y2="44"/><line x1="130" y1="124" x2="163" y2="124"/><line x1="130" y1="204" x2="163" y2="204"/>
+      <line x1="315" y1="44" x2="363" y2="90"/><line x1="315" y1="124" x2="363" y2="124"/><line x1="315" y1="204" x2="363" y2="158"/>
+    </g>
+    <text x="340" y="62" font-size="10" fill="#52514e" text-anchor="middle">256×16×16</text>
+    <!-- fusion -->
+    <rect x="365" y="60" width="250" height="130" rx="6" fill="#f6f5f1" stroke="#333"/>
+    <text x="490" y="80" text-anchor="middle" font-weight="bold">CrossModalAlphaFusion</text>
+    <text x="490" y="101" text-anchor="middle" font-size="10.5">① presence-gated modality embeddings</text>
+    <text x="490" y="118" text-anchor="middle" font-size="10.5">② optical ↔ SAR cross-attention (8 heads)</text>
+    <text x="490" y="135" text-anchor="middle" font-size="10.5">③ joint embedding (768→256)</text>
+    <text x="490" y="152" text-anchor="middle" font-size="10.5">④ per-pixel softmax α over present modalities</text>
+    <text x="490" y="169" text-anchor="middle" font-size="10.5">⑤ Σ α<tspan baseline-shift="sub" font-size="8">m</tspan>·f<tspan baseline-shift="sub" font-size="8">m</tspan>  ⑥ residual refinement</text>
+    <!-- presence -->
+    <text x="490" y="210" text-anchor="middle" font-size="10" fill="#52514e">presence p ∈ {0,1}³ — absent modality → α = 0, zero embedding, zero skip</text>
+    <!-- decoder -->
+    <g stroke="#333" fill="none" marker-end="url(#ar)"><line x1="615" y1="125" x2="663" y2="125"/></g>
+    <rect x="665" y="85" width="140" height="80" rx="4" fill="#fff" stroke="#333"/>
+    <text x="735" y="108" text-anchor="middle">Decoder</text>
+    <text x="735" y="125" text-anchor="middle" font-size="10">4× (up2 · conv · SE)</text>
+    <text x="735" y="141" text-anchor="middle" font-size="10">skips at H/8, H/4, H/2</text>
+    <text x="735" y="157" text-anchor="middle" font-size="10">→ 48×256×256</text>
+    <path d="M240,20 Q240,6 400,6 L735,6 Q735,6 735,83" stroke="#9a9993" stroke-dasharray="4 3" fill="none" marker-end="url(#ar)"/>
+    <text x="560" y="2" font-size="9.5" fill="#52514e" text-anchor="middle" dy="13">gated encoder skips</text>
+    <!-- heads -->
+    <g stroke="#333" fill="none" marker-end="url(#ar)">
+      <line x1="805" y1="110" x2="853" y2="62"/><line x1="805" y1="125" x2="853" y2="125"/><line x1="805" y1="140" x2="853" y2="188"/>
+    </g>
+    <rect x="855" y="38" width="135" height="44" rx="4" fill="#fff" stroke="#333"/>
+    <text x="922" y="57" text-anchor="middle">LULC head</text><text x="922" y="72" text-anchor="middle" font-size="10">9-class softmax</text>
+    <rect x="855" y="103" width="135" height="44" rx="4" fill="#fff" stroke="#333"/>
+    <text x="922" y="122" text-anchor="middle">Road head</text><text x="922" y="137" text-anchor="middle" font-size="10">binary</text>
+    <rect x="855" y="168" width="135" height="44" rx="4" fill="#fff" stroke="#333"/>
+    <text x="922" y="187" text-anchor="middle">Building head</text><text x="922" y="202" text-anchor="middle" font-size="10">soft coverage</text>
+  </g>
+</svg>
