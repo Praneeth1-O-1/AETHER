@@ -1,0 +1,62 @@
+{
+  "checkpoint": "/kaggle/input/notebooks/pr4neeth/notebook539204c56c/AETHER/checkpoints_skip/best.pt",
+  "thresholds_chosen_on_val": {
+    "road": 0.699999988079071,
+    "building": 0.7599999904632568
+  },
+  "val": {
+    "miou": 0.6572,
+    "accuracy": 0.8328,
+    "road": {
+      "iou": 0.2993,
+      "f1": 0.4607,
+      "precision": 0.417,
+      "recall": 0.5146
+    },
+    "building": {
+      "iou": 0.3055,
+      "f1": 0.4681,
+      "precision": 0.3744,
+      "recall": 0.6243
+    }
+  },
+  "test": {
+    "miou": 0.6573,
+    "accuracy": 0.8449,
+    "per_class_iou": {
+      "water": 0.9182,
+      "trees": 0.8199,
+      "grass": 0.4949,
+      "flooded_veg": 0.423,
+      "crops": 0.6801,
+      "shrub": 0.6357,
+      "built": 0.6884,
+      "bare": 0.767,
+      "snow_ice": 0.4887
+    },
+    "road": {
+      "iou": 0.3617,
+      "f1": 0.5313,
+      "precision": 0.4737,
+      "recall": 0.6048
+    },
+    "building": {
+      "iou": 0.3437,
+      "f1": 0.5116,
+      "precision": 0.4136,
+      "recall": 0.6704
+    },
+    "road_at_0.50": {
+      "iou": 0.3568,
+      "f1": 0.526,
+      "precision": 0.413,
+      "recall": 0.7239
+    },
+    "building_at_0.50": {
+      "iou": 0.3093,
+      "f1": 0.4724,
+      "precision": 0.3283,
+      "recall": 0.8422
+    }
+  }
+}

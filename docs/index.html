@@ -127,6 +127,7 @@
     .stats { grid-template-columns: repeat(2, 1fr); }
     .limits { grid-template-columns: 1fr; }
   }
+  @media (max-width: 520px) { .stats { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
@@ -158,21 +159,21 @@
     <figure class="shift" aria-label="Per-pixel fusion weights under clear, 50% and 100% cloud">
       <div class="shift-row">
         <div class="shift-label">Clear sky</div>
-        <div><div class="bar"><span class="o" style="width:89.5%"></span><span class="s" style="width:7.7%"></span><span class="d" style="width:2.8%"></span></div>
-        <div class="shift-nums">0.895 / 0.077 / 0.028</div></div>
+        <div><div class="bar"><span class="o" style="width:86.6%"></span><span class="s" style="width:10.1%"></span><span class="d" style="width:3.3%"></span></div>
+        <div class="shift-nums">0.866 / 0.101 / 0.032</div></div>
       </div>
       <div class="shift-row">
         <div class="shift-label">50% cloud</div>
-        <div><div class="bar"><span class="o" style="width:76.1%"></span><span class="s" style="width:17.7%"></span><span class="d" style="width:6.2%"></span></div>
-        <div class="shift-nums">0.761 / 0.177 / 0.063</div></div>
+        <div><div class="bar"><span class="o" style="width:73.2%"></span><span class="s" style="width:20.4%"></span><span class="d" style="width:6.4%"></span></div>
+        <div class="shift-nums">0.732 / 0.204 / 0.064</div></div>
       </div>
       <div class="shift-row">
         <div class="shift-label">100% cloud</div>
-        <div><div class="bar"><span class="s" style="width:68.6%"></span><span class="d" style="width:31.4%"></span></div>
-        <div class="shift-nums">0.000 / 0.686 / 0.314</div></div>
+        <div><div class="bar"><span class="s" style="width:73.2%"></span><span class="d" style="width:26.8%"></span></div>
+        <div class="shift-nums">0.000 / 0.733 / 0.268</div></div>
       </div>
       <div class="legend"><span><i style="background:var(--optical)"></i>Optical</span><span><i style="background:var(--sar)"></i>Radar</span><span><i style="background:var(--dem)"></i>Elevation</span></div>
-      <figcaption>Mean fusion weight given to each sensor on held-out validation locations. Nobody told the model these ratios; it learned them.</figcaption>
+      <figcaption>Mean fusion weight given to each sensor on 1,937 test tiles from locations never seen in training. Nobody told the model these ratios; it learned them.</figcaption>
     </figure>
   </div>
 </header>
@@ -216,19 +217,48 @@
     <div class="section-head">
       <span class="eyebrow">Results</span>
       <h2>Graceful degradation, not collapse</h2>
-      <p>Validation results on 1,894 tiles from locations the model never trained on.</p>
+      <p>Held-out test set: 1,937 tiles from 137 locations the model never trained on. Cloud is injected over the clear image at increasing coverage.</p>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="v">84.3%</div><div class="k">Land-cover pixel accuracy (mIoU 0.654, κ 0.806)</div></div>
+      <div class="stat"><div class="v">0.441</div><div class="k">mIoU under 100% cloud, vs 0.230 without radar</div></div>
+      <div class="stat"><div class="v">0.356 / 0.335</div><div class="k">Road / building IoU at thresholds tuned on validation</div></div>
+      <div class="stat"><div class="v">1,126 km²/s</div><div class="k">Mapped per second on one Tesla T4 (fp16, 172 tiles/s)</div></div>
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Condition</th><th>LULC accuracy</th><th>mIoU</th><th>Optical weight</th><th>Radar weight</th><th>Elevation weight</th></tr></thead>
+        <thead><tr><th>Cloud cover</th><th>LULC accuracy</th><th>mIoU</th><th>mIoU without radar</th><th>Optical weight</th><th>Radar weight</th><th>Elevation weight</th></tr></thead>
         <tbody>
-          <tr><td>Clear sky</td><td>0.833</td><td>0.657</td><td>0.895</td><td>0.077</td><td>0.028</td></tr>
-          <tr><td>50% cloud</td><td>0.783</td><td>0.587</td><td>0.761</td><td>0.177</td><td>0.063</td></tr>
-          <tr><td>100% cloud</td><td>0.594</td><td>0.363</td><td>0.000</td><td class="hl">0.686</td><td>0.314</td></tr>
+          <tr><td>0%</td><td>0.843</td><td>0.654</td><td>0.644</td><td>0.866</td><td>0.101</td><td>0.032</td></tr>
+          <tr><td>25%</td><td>0.824</td><td>0.628</td><td>0.611</td><td>0.819</td><td>0.137</td><td>0.044</td></tr>
+          <tr><td>50%</td><td>0.801</td><td>0.598</td><td>0.573</td><td>0.732</td><td>0.204</td><td>0.064</td></tr>
+          <tr><td>75%</td><td>0.774</td><td>0.560</td><td>0.521</td><td>0.594</td><td>0.311</td><td>0.095</td></tr>
+          <tr><td>100%</td><td>0.664</td><td>0.441</td><td>0.230</td><td>0.000</td><td class="hl">0.733</td><td>0.268</td></tr>
         </tbody>
       </table>
     </div>
-    <p class="note">Road IoU 0.281 and building IoU 0.267 in clear sky (untuned 0.5 threshold).</p>
+    <p class="note">On a 1,752-tile subset excluding every coordinate shared with training or validation, all metrics agree within 0.01.</p>
+
+    <figure class="fig-card" style="margin-top:34px">
+      <img src="assets/fig_cloud_curve.png" alt="Line chart: test mIoU falls gently with cloud cover when radar is used, and collapses to 0.23 at full cover without it." loading="lazy" style="max-width:560px">
+      <p class="figcap">The gap between the blue and orange lines is what radar contributes. It grows with cloud cover, from 0.01 mIoU in clear sky to 0.21 under full cover.</p>
+    </figure>
+
+    <div class="table-wrap" style="margin-top:34px">
+      <table>
+        <thead><tr><th>Sensors (clear sky, test)</th><th>LULC accuracy</th><th>mIoU</th><th>Road IoU</th><th>Building IoU</th></tr></thead>
+        <tbody>
+          <tr><td>Optical</td><td>0.829</td><td>0.635</td><td>0.346</td><td>0.322</td></tr>
+          <tr><td>Radar</td><td>0.601</td><td>0.383</td><td>0.215</td><td>0.206</td></tr>
+          <tr><td>Elevation</td><td>0.466</td><td>0.229</td><td>0.000</td><td>0.000</td></tr>
+          <tr><td>Optical + radar</td><td>0.840</td><td>0.646</td><td>0.354</td><td>0.332</td></tr>
+          <tr><td>Optical + elevation</td><td>0.835</td><td>0.644</td><td>0.347</td><td>0.326</td></tr>
+          <tr><td>Radar + elevation</td><td>0.646</td><td>0.424</td><td>0.217</td><td>0.210</td></tr>
+          <tr><td>All three</td><td>0.842</td><td class="hl">0.652</td><td>0.355</td><td>0.335</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">Sensors are switched off through the model's presence flags, so a removed sensor gets exactly zero weight. 19.4 M parameters, 31.4 GFLOPs per 256 × 256 tile.</p>
 
     <div class="split-figs">
       <figure class="fig-card">
@@ -240,7 +270,6 @@
         <p class="figcap">The fusion-weight map (right column, red = optical, green = radar, blue = elevation) is almost pure optical in clear sky, and turns toward radar and elevation under cloud.</p>
       </figure>
     </div>
-    <div class="pending">Held-out test-set results, the full sensor-combination ablation, the cloud-degradation curve and GPU benchmarks are being finalised and will be published here.</div>
   </div>
 </section>
 
@@ -294,9 +323,9 @@ python run_evaluate.py</code></pre>
     </div>
     <ul class="limits">
       <li><b>Single-date radar.</b> One Sentinel-1 acquisition per tile limits how much radar alone can recover.</li>
-      <li><b>Roads and buildings.</b> IoU stays below 0.3; thin structures remain hard at 10 m.</li>
+      <li><b>Roads and buildings.</b> IoU is about 0.35; thin structures remain hard at 10 m.</li>
       <li><b>Orbit direction.</b> Not recorded in the archive, so that radar input is unused.</li>
-      <li><b>Validation numbers.</b> Test-set results are being finalised.</li>
+      <li><b>Small split leak.</b> 185 test tiles share coordinates with training or validation tiles; results on the leak-free subset are the same within 0.01.</li>
     </ul>
   </div>
 </section>

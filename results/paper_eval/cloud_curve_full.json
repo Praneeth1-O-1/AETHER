@@ -1,0 +1,447 @@
+{
+  "checkpoint": "/kaggle/input/notebooks/pr4neeth/notebook539204c56c/AETHER/checkpoints_skip/best.pt",
+  "split": "test",
+  "n_tiles": 1937,
+  "levels": {
+    "0.00": {
+      "all": {
+        "accuracy": 0.8427,
+        "miou": 0.6544,
+        "kappa": 0.8061,
+        "alpha_mean": [
+          0.8662,
+          0.1014,
+          0.0323
+        ],
+        "per_class_iou": {
+          "water": 0.9278,
+          "trees": 0.8151,
+          "grass": 0.4783,
+          "flooded_veg": 0.4107,
+          "crops": 0.6624,
+          "shrub": 0.6284,
+          "built": 0.7127,
+          "bare": 0.7655,
+          "snow_ice": 0.4885
+        }
+      },
+      "no_sar": {
+        "accuracy": 0.8354,
+        "miou": 0.6439,
+        "kappa": 0.7973,
+        "alpha_mean": [
+          0.933,
+          0.0,
+          0.067
+        ],
+        "per_class_iou": {
+          "water": 0.9221,
+          "trees": 0.806,
+          "grass": 0.4643,
+          "flooded_veg": 0.4071,
+          "crops": 0.6567,
+          "shrub": 0.6111,
+          "built": 0.6971,
+          "bare": 0.758,
+          "snow_ice": 0.4728
+        }
+      },
+      "no_dem": {
+        "accuracy": 0.8403,
+        "miou": 0.6477,
+        "kappa": 0.8029,
+        "alpha_mean": [
+          0.8763,
+          0.1237,
+          0.0
+        ],
+        "per_class_iou": {
+          "water": 0.9155,
+          "trees": 0.8134,
+          "grass": 0.4799,
+          "flooded_veg": 0.4044,
+          "crops": 0.666,
+          "shrub": 0.6167,
+          "built": 0.7188,
+          "bare": 0.7543,
+          "snow_ice": 0.4607
+        }
+      },
+      "sar_dem_only": {
+        "accuracy": 0.664,
+        "miou": 0.441,
+        "kappa": 0.5906,
+        "alpha_mean": [
+          0.0,
+          0.7325,
+          0.2675
+        ],
+        "per_class_iou": {
+          "water": 0.8648,
+          "trees": 0.5816,
+          "grass": 0.1749,
+          "flooded_veg": 0.2256,
+          "crops": 0.4685,
+          "shrub": 0.3555,
+          "built": 0.4675,
+          "bare": 0.6042,
+          "snow_ice": 0.2263
+        }
+      },
+      "sar_contribution_miou": 0.0105,
+      "dem_contribution_miou": 0.0067
+    },
+    "0.25": {
+      "all": {
+        "accuracy": 0.8236,
+        "miou": 0.6282,
+        "kappa": 0.783,
+        "alpha_mean": [
+          0.8193,
+          0.137,
+          0.0436
+        ],
+        "per_class_iou": {
+          "water": 0.9153,
+          "trees": 0.784,
+          "grass": 0.4465,
+          "flooded_veg": 0.3861,
+          "crops": 0.6388,
+          "shrub": 0.601,
+          "built": 0.6706,
+          "bare": 0.7496,
+          "snow_ice": 0.4622
+        }
+      },
+      "no_sar": {
+        "accuracy": 0.8107,
+        "miou": 0.6113,
+        "kappa": 0.7673,
+        "alpha_mean": [
+          0.9098,
+          0.0,
+          0.0902
+        ],
+        "per_class_iou": {
+          "water": 0.8996,
+          "trees": 0.7682,
+          "grass": 0.4327,
+          "flooded_veg": 0.3732,
+          "crops": 0.6231,
+          "shrub": 0.5786,
+          "built": 0.6363,
+          "bare": 0.738,
+          "snow_ice": 0.4518
+        }
+      },
+      "no_dem": {
+        "accuracy": 0.8211,
+        "miou": 0.6218,
+        "kappa": 0.7796,
+        "alpha_mean": [
+          0.8334,
+          0.1666,
+          0.0
+        ],
+        "per_class_iou": {
+          "water": 0.9019,
+          "trees": 0.7831,
+          "grass": 0.4487,
+          "flooded_veg": 0.3769,
+          "crops": 0.6409,
+          "shrub": 0.5894,
+          "built": 0.6742,
+          "bare": 0.7399,
+          "snow_ice": 0.4417
+        }
+      },
+      "sar_dem_only": {
+        "accuracy": 0.664,
+        "miou": 0.441,
+        "kappa": 0.5906,
+        "alpha_mean": [
+          0.0,
+          0.7325,
+          0.2675
+        ],
+        "per_class_iou": {
+          "water": 0.8648,
+          "trees": 0.5816,
+          "grass": 0.1749,
+          "flooded_veg": 0.2256,
+          "crops": 0.4685,
+          "shrub": 0.3555,
+          "built": 0.4675,
+          "bare": 0.6042,
+          "snow_ice": 0.2263
+        }
+      },
+      "sar_contribution_miou": 0.0169,
+      "dem_contribution_miou": 0.0064
+    },
+    "0.50": {
+      "all": {
+        "accuracy": 0.8011,
+        "miou": 0.5978,
+        "kappa": 0.7556,
+        "alpha_mean": [
+          0.7322,
+          0.2038,
+          0.064
+        ],
+        "per_class_iou": {
+          "water": 0.9,
+          "trees": 0.7477,
+          "grass": 0.4,
+          "flooded_veg": 0.3508,
+          "crops": 0.6145,
+          "shrub": 0.5688,
+          "built": 0.6274,
+          "bare": 0.7343,
+          "snow_ice": 0.4372
+        }
+      },
+      "no_sar": {
+        "accuracy": 0.7807,
+        "miou": 0.573,
+        "kappa": 0.7309,
+        "alpha_mean": [
+          0.8635,
+          0.0,
+          0.1365
+        ],
+        "per_class_iou": {
+          "water": 0.8706,
+          "trees": 0.7235,
+          "grass": 0.3797,
+          "flooded_veg": 0.3394,
+          "crops": 0.5885,
+          "shrub": 0.5398,
+          "built": 0.5709,
+          "bare": 0.7193,
+          "snow_ice": 0.4249
+        }
+      },
+      "no_dem": {
+        "accuracy": 0.7978,
+        "miou": 0.5909,
+        "kappa": 0.7511,
+        "alpha_mean": [
+          0.7545,
+          0.2455,
+          0.0
+        ],
+        "per_class_iou": {
+          "water": 0.8805,
+          "trees": 0.746,
+          "grass": 0.4015,
+          "flooded_veg": 0.3492,
+          "crops": 0.6135,
+          "shrub": 0.5578,
+          "built": 0.628,
+          "bare": 0.724,
+          "snow_ice": 0.4171
+        }
+      },
+      "sar_dem_only": {
+        "accuracy": 0.664,
+        "miou": 0.441,
+        "kappa": 0.5906,
+        "alpha_mean": [
+          0.0,
+          0.7325,
+          0.2675
+        ],
+        "per_class_iou": {
+          "water": 0.8648,
+          "trees": 0.5816,
+          "grass": 0.1749,
+          "flooded_veg": 0.2256,
+          "crops": 0.4685,
+          "shrub": 0.3555,
+          "built": 0.4675,
+          "bare": 0.6042,
+          "snow_ice": 0.2263
+        }
+      },
+      "sar_contribution_miou": 0.0248,
+      "dem_contribution_miou": 0.0069
+    },
+    "0.75": {
+      "all": {
+        "accuracy": 0.7737,
+        "miou": 0.5598,
+        "kappa": 0.7225,
+        "alpha_mean": [
+          0.5939,
+          0.3113,
+          0.0948
+        ],
+        "per_class_iou": {
+          "water": 0.8849,
+          "trees": 0.7054,
+          "grass": 0.3458,
+          "flooded_veg": 0.3055,
+          "crops": 0.5822,
+          "shrub": 0.5344,
+          "built": 0.582,
+          "bare": 0.7198,
+          "snow_ice": 0.3781
+        }
+      },
+      "no_sar": {
+        "accuracy": 0.7404,
+        "miou": 0.5208,
+        "kappa": 0.6824,
+        "alpha_mean": [
+          0.7826,
+          0.0,
+          0.2174
+        ],
+        "per_class_iou": {
+          "water": 0.8339,
+          "trees": 0.6648,
+          "grass": 0.3139,
+          "flooded_veg": 0.2829,
+          "crops": 0.5421,
+          "shrub": 0.5007,
+          "built": 0.4906,
+          "bare": 0.6961,
+          "snow_ice": 0.3618
+        }
+      },
+      "no_dem": {
+        "accuracy": 0.7681,
+        "miou": 0.5499,
+        "kappa": 0.7152,
+        "alpha_mean": [
+          0.6293,
+          0.3707,
+          0.0
+        ],
+        "per_class_iou": {
+          "water": 0.8566,
+          "trees": 0.7009,
+          "grass": 0.3423,
+          "flooded_veg": 0.3056,
+          "crops": 0.5786,
+          "shrub": 0.5236,
+          "built": 0.5788,
+          "bare": 0.707,
+          "snow_ice": 0.3555
+        }
+      },
+      "sar_dem_only": {
+        "accuracy": 0.664,
+        "miou": 0.441,
+        "kappa": 0.5906,
+        "alpha_mean": [
+          0.0,
+          0.7325,
+          0.2675
+        ],
+        "per_class_iou": {
+          "water": 0.8648,
+          "trees": 0.5816,
+          "grass": 0.1749,
+          "flooded_veg": 0.2256,
+          "crops": 0.4685,
+          "shrub": 0.3555,
+          "built": 0.4675,
+          "bare": 0.6042,
+          "snow_ice": 0.2263
+        }
+      },
+      "sar_contribution_miou": 0.039,
+      "dem_contribution_miou": 0.0099
+    },
+    "1.00": {
+      "all": {
+        "accuracy": 0.664,
+        "miou": 0.441,
+        "kappa": 0.5906,
+        "alpha_mean": [
+          0.0,
+          0.7325,
+          0.2675
+        ],
+        "per_class_iou": {
+          "water": 0.8648,
+          "trees": 0.5816,
+          "grass": 0.1749,
+          "flooded_veg": 0.2256,
+          "crops": 0.4685,
+          "shrub": 0.3555,
+          "built": 0.4675,
+          "bare": 0.6042,
+          "snow_ice": 0.2263
+        }
+      },
+      "no_sar": {
+        "accuracy": 0.4659,
+        "miou": 0.2295,
+        "kappa": 0.3371,
+        "alpha_mean": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "per_class_iou": {
+          "water": 0.7242,
+          "trees": 0.4354,
+          "grass": 0.0525,
+          "flooded_veg": 0.0099,
+          "crops": 0.2575,
+          "shrub": 0.1853,
+          "built": 0.1434,
+          "bare": 0.2571,
+          "snow_ice": 0.0
+        }
+      },
+      "no_dem": {
+        "accuracy": 0.6336,
+        "miou": 0.4037,
+        "kappa": 0.5434,
+        "alpha_mean": [
+          0.0437,
+          0.9482,
+          0.0082
+        ],
+        "per_class_iou": {
+          "water": 0.7739,
+          "trees": 0.5338,
+          "grass": 0.1705,
+          "flooded_veg": 0.1934,
+          "crops": 0.458,
+          "shrub": 0.3147,
+          "built": 0.4907,
+          "bare": 0.5349,
+          "snow_ice": 0.1634
+        }
+      },
+      "sar_dem_only": {
+        "accuracy": 0.664,
+        "miou": 0.441,
+        "kappa": 0.5906,
+        "alpha_mean": [
+          0.0,
+          0.7325,
+          0.2675
+        ],
+        "per_class_iou": {
+          "water": 0.8648,
+          "trees": 0.5816,
+          "grass": 0.1749,
+          "flooded_veg": 0.2256,
+          "crops": 0.4685,
+          "shrub": 0.3555,
+          "built": 0.4675,
+          "bare": 0.6042,
+          "snow_ice": 0.2263
+        }
+      },
+      "sar_contribution_miou": 0.2115,
+      "dem_contribution_miou": 0.0373
+    }
+  }
+}

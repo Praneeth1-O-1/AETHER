@@ -1,0 +1,178 @@
+{
+  "all (baseline)": {
+    "accuracy": 0.8439356684684753,
+    "miou": 0.6551279425621033,
+    "road_iou": 0.3615320163504098,
+    "building_iou": 0.34366965751895784,
+    "alpha": [
+      0.8711,
+      0.1018,
+      0.0271
+    ],
+    "per_class_iou": {
+      "water": 0.9177,
+      "trees": 0.8181,
+      "grass": 0.4958,
+      "flooded_veg": 0.4111,
+      "crops": 0.6806,
+      "shrub": 0.6354,
+      "built": 0.685,
+      "bare": 0.7633,
+      "snow_ice": 0.4892
+    }
+  },
+  "optical only": {
+    "accuracy": 0.8328680396080017,
+    "miou": 0.6392269134521484,
+    "road_iou": 0.35853689171909153,
+    "building_iou": 0.3345477228740804,
+    "alpha": [
+      1.0,
+      0.0,
+      0.0
+    ],
+    "per_class_iou": {
+      "water": 0.8765,
+      "trees": 0.8001,
+      "grass": 0.4889,
+      "flooded_veg": 0.4096,
+      "crops": 0.6672,
+      "shrub": 0.611,
+      "built": 0.6713,
+      "bare": 0.7577,
+      "snow_ice": 0.4707
+    }
+  },
+  "SAR only": {
+    "accuracy": 0.5916646122932434,
+    "miou": 0.3746340572834015,
+    "road_iou": 0.20926166349662473,
+    "building_iou": 0.2023869567180948,
+    "alpha": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "per_class_iou": {
+      "water": 0.7419,
+      "trees": 0.5129,
+      "grass": 0.1735,
+      "flooded_veg": 0.1991,
+      "crops": 0.4743,
+      "shrub": 0.3057,
+      "built": 0.4381,
+      "bare": 0.3628,
+      "snow_ice": 0.1635
+    }
+  },
+  "DEM only": {
+    "accuracy": 0.4797733724117279,
+    "miou": 0.23331816494464874,
+    "road_iou": 0.00014559199490453163,
+    "building_iou": 0.0,
+    "alpha": [
+      0.0,
+      0.0,
+      1.0
+    ],
+    "per_class_iou": {
+      "water": 0.7027,
+      "trees": 0.4555,
+      "grass": 0.05,
+      "flooded_veg": 0.01,
+      "crops": 0.2704,
+      "shrub": 0.1983,
+      "built": 0.1446,
+      "bare": 0.2683,
+      "snow_ice": 0.0
+    }
+  },
+  "no optical (S+D)": {
+    "accuracy": 0.6411677002906799,
+    "miou": 0.41770902276039124,
+    "road_iou": 0.20984456359483464,
+    "building_iou": 0.20782136777136892,
+    "alpha": [
+      0.0,
+      0.7788,
+      0.2212
+    ],
+    "per_class_iou": {
+      "water": 0.8189,
+      "trees": 0.5618,
+      "grass": 0.1777,
+      "flooded_veg": 0.22,
+      "crops": 0.4886,
+      "shrub": 0.3254,
+      "built": 0.4389,
+      "bare": 0.5017,
+      "snow_ice": 0.2263
+    }
+  },
+  "no SAR (O+D)": {
+    "accuracy": 0.8390300273895264,
+    "miou": 0.6480301022529602,
+    "road_iou": 0.3594291098422995,
+    "building_iou": 0.33909622729086925,
+    "alpha": [
+      0.9356,
+      0.0,
+      0.0644
+    ],
+    "per_class_iou": {
+      "water": 0.9116,
+      "trees": 0.8118,
+      "grass": 0.4763,
+      "flooded_veg": 0.4192,
+      "crops": 0.6751,
+      "shrub": 0.6236,
+      "built": 0.6823,
+      "bare": 0.7594,
+      "snow_ice": 0.473
+    }
+  },
+  "no DEM (O+S)": {
+    "accuracy": 0.8413180112838745,
+    "miou": 0.648987352848053,
+    "road_iou": 0.3602065368809354,
+    "building_iou": 0.3404448524848452,
+    "alpha": [
+      0.8763,
+      0.1237,
+      0.0
+    ],
+    "per_class_iou": {
+      "water": 0.9096,
+      "trees": 0.8166,
+      "grass": 0.4971,
+      "flooded_veg": 0.4082,
+      "crops": 0.6848,
+      "shrub": 0.6212,
+      "built": 0.6892,
+      "bare": 0.7522,
+      "snow_ice": 0.4619
+    }
+  },
+  "nothing": {
+    "accuracy": 0.3264334201812744,
+    "miou": 0.0362703837454319,
+    "road_iou": 0.0,
+    "building_iou": 0.0,
+    "alpha": [
+      0.3689,
+      0.5621,
+      0.069
+    ],
+    "per_class_iou": {
+      "water": 0.0,
+      "trees": 0.3264,
+      "grass": 0.0,
+      "flooded_veg": 0.0,
+      "crops": 0.0,
+      "shrub": 0.0,
+      "built": 0.0,
+      "bare": 0.0,
+      "snow_ice": 0.0
+    }
+  }
+}

@@ -1,0 +1,1063 @@
+{
+  "checkpoint": "/kaggle/input/notebooks/pr4neeth/notebook539204c56c/AETHER/checkpoints_skip/best.pt",
+  "split": "test",
+  "scenarios": {
+    "ALL": {
+      "n_tiles": 1937,
+      "n_locations": 137,
+      "lulc": {
+        "labelled_pixels": 115671488,
+        "accuracy": 0.8427,
+        "kappa": 0.8061,
+        "macro": {
+          "precision": 0.768,
+          "recall": 0.8035,
+          "f1": 0.7794,
+          "iou": 0.6544
+        },
+        "weighted": {
+          "precision": 0.8468,
+          "recall": 0.8427,
+          "f1": 0.8438,
+          "iou": 0.7368
+        },
+        "per_class": {
+          "water": {
+            "precision": 0.9634,
+            "recall": 0.9617,
+            "f1": 0.9625,
+            "iou": 0.9278,
+            "support_px": 9722225
+          },
+          "trees": {
+            "precision": 0.9074,
+            "recall": 0.889,
+            "f1": 0.8981,
+            "iou": 0.8151,
+            "support_px": 37971984
+          },
+          "grass": {
+            "precision": 0.6009,
+            "recall": 0.7011,
+            "f1": 0.6471,
+            "iou": 0.4783,
+            "support_px": 4246289
+          },
+          "flooded_veg": {
+            "precision": 0.4593,
+            "recall": 0.7951,
+            "f1": 0.5823,
+            "iou": 0.4107,
+            "support_px": 816808
+          },
+          "crops": {
+            "precision": 0.7863,
+            "recall": 0.8078,
+            "f1": 0.7969,
+            "iou": 0.6624,
+            "support_px": 17437218
+          },
+          "shrub": {
+            "precision": 0.8014,
+            "recall": 0.7443,
+            "f1": 0.7718,
+            "iou": 0.6284,
+            "support_px": 19546534
+          },
+          "built": {
+            "precision": 0.794,
+            "recall": 0.8743,
+            "f1": 0.8322,
+            "iou": 0.7127,
+            "support_px": 10057775
+          },
+          "bare": {
+            "precision": 0.8814,
+            "recall": 0.8534,
+            "f1": 0.8672,
+            "iou": 0.7655,
+            "support_px": 14950695
+          },
+          "snow_ice": {
+            "precision": 0.7182,
+            "recall": 0.6044,
+            "f1": 0.6564,
+            "iou": 0.4886,
+            "support_px": 921956
+          }
+        }
+      },
+      "road": {
+        "tuned_threshold": 0.699999988079071,
+        "at_tuned": {
+          "iou": 0.3555,
+          "f1": 0.5246,
+          "precision": 0.464,
+          "recall": 0.6034,
+          "specificity": 0.9677,
+          "accuracy": 0.9516,
+          "tp": 2781949.0,
+          "fp": 3213946.0,
+          "fn": 1828574.0,
+          "tn": 96312235.0,
+          "positive_rate": 0.0443
+        },
+        "at_0.50": {
+          "iou": 0.3472,
+          "f1": 0.5155,
+          "precision": 0.399,
+          "recall": 0.7279,
+          "specificity": 0.9492,
+          "accuracy": 0.9394,
+          "tp": 3356157.0,
+          "fp": 5055395.0,
+          "fn": 1254366.0,
+          "tn": 94470786.0,
+          "positive_rate": 0.0443
+        },
+        "average_precision": 0.4529
+      },
+      "building": {
+        "tuned_threshold": 0.7599999904632568,
+        "at_tuned": {
+          "iou": 0.3354,
+          "f1": 0.5023,
+          "precision": 0.4041,
+          "recall": 0.6635,
+          "specificity": 0.9846,
+          "accuracy": 0.9796,
+          "tp": 1307862.0,
+          "fp": 1928236.0,
+          "fn": 663166.0,
+          "tn": 123043626.0,
+          "positive_rate": 0.0155
+        },
+        "at_0.50": {
+          "iou": 0.2968,
+          "f1": 0.4578,
+          "precision": 0.3138,
+          "recall": 0.846,
+          "specificity": 0.9708,
+          "accuracy": 0.9689,
+          "tp": 1667539.0,
+          "fp": 3647014.0,
+          "fn": 303489.0,
+          "tn": 121324848.0,
+          "positive_rate": 0.0155
+        },
+        "average_precision": 0.4086
+      },
+      "alpha_mean": [
+        0.8661,
+        0.1015,
+        0.0324
+      ]
+    },
+    "optical present": {
+      "n_tiles": 1937,
+      "n_locations": 137,
+      "lulc": {
+        "labelled_pixels": 115671488,
+        "accuracy": 0.8427,
+        "kappa": 0.8061,
+        "macro": {
+          "precision": 0.768,
+          "recall": 0.8035,
+          "f1": 0.7794,
+          "iou": 0.6544
+        },
+        "weighted": {
+          "precision": 0.8468,
+          "recall": 0.8427,
+          "f1": 0.8438,
+          "iou": 0.7368
+        },
+        "per_class": {
+          "water": {
+            "precision": 0.9634,
+            "recall": 0.9617,
+            "f1": 0.9625,
+            "iou": 0.9278,
+            "support_px": 9722225
+          },
+          "trees": {
+            "precision": 0.9074,
+            "recall": 0.889,
+            "f1": 0.8981,
+            "iou": 0.8151,
+            "support_px": 37971984
+          },
+          "grass": {
+            "precision": 0.6009,
+            "recall": 0.7011,
+            "f1": 0.6471,
+            "iou": 0.4783,
+            "support_px": 4246289
+          },
+          "flooded_veg": {
+            "precision": 0.4593,
+            "recall": 0.7951,
+            "f1": 0.5823,
+            "iou": 0.4107,
+            "support_px": 816808
+          },
+          "crops": {
+            "precision": 0.7863,
+            "recall": 0.8078,
+            "f1": 0.7969,
+            "iou": 0.6624,
+            "support_px": 17437218
+          },
+          "shrub": {
+            "precision": 0.8014,
+            "recall": 0.7443,
+            "f1": 0.7718,
+            "iou": 0.6284,
+            "support_px": 19546534
+          },
+          "built": {
+            "precision": 0.794,
+            "recall": 0.8743,
+            "f1": 0.8322,
+            "iou": 0.7127,
+            "support_px": 10057775
+          },
+          "bare": {
+            "precision": 0.8814,
+            "recall": 0.8534,
+            "f1": 0.8672,
+            "iou": 0.7655,
+            "support_px": 14950695
+          },
+          "snow_ice": {
+            "precision": 0.7182,
+            "recall": 0.6044,
+            "f1": 0.6564,
+            "iou": 0.4886,
+            "support_px": 921956
+          }
+        }
+      },
+      "road": {
+        "tuned_threshold": 0.699999988079071,
+        "at_tuned": {
+          "iou": 0.3555,
+          "f1": 0.5246,
+          "precision": 0.464,
+          "recall": 0.6034,
+          "specificity": 0.9677,
+          "accuracy": 0.9516,
+          "tp": 2781949.0,
+          "fp": 3213946.0,
+          "fn": 1828574.0,
+          "tn": 96312235.0,
+          "positive_rate": 0.0443
+        },
+        "at_0.50": {
+          "iou": 0.3472,
+          "f1": 0.5155,
+          "precision": 0.399,
+          "recall": 0.7279,
+          "specificity": 0.9492,
+          "accuracy": 0.9394,
+          "tp": 3356157.0,
+          "fp": 5055395.0,
+          "fn": 1254366.0,
+          "tn": 94470786.0,
+          "positive_rate": 0.0443
+        },
+        "average_precision": 0.4529
+      },
+      "building": {
+        "tuned_threshold": 0.7599999904632568,
+        "at_tuned": {
+          "iou": 0.3354,
+          "f1": 0.5023,
+          "precision": 0.4041,
+          "recall": 0.6635,
+          "specificity": 0.9846,
+          "accuracy": 0.9796,
+          "tp": 1307862.0,
+          "fp": 1928236.0,
+          "fn": 663166.0,
+          "tn": 123043626.0,
+          "positive_rate": 0.0155
+        },
+        "at_0.50": {
+          "iou": 0.2968,
+          "f1": 0.4578,
+          "precision": 0.3138,
+          "recall": 0.846,
+          "specificity": 0.9708,
+          "accuracy": 0.9689,
+          "tp": 1667539.0,
+          "fp": 3647014.0,
+          "fn": 303489.0,
+          "tn": 121324848.0,
+          "positive_rate": 0.0155
+        },
+        "average_precision": 0.4086
+      },
+      "alpha_mean": [
+        0.8661,
+        0.1015,
+        0.0324
+      ]
+    },
+    "SAR present": {
+      "n_tiles": 1937,
+      "n_locations": 137,
+      "lulc": {
+        "labelled_pixels": 115671488,
+        "accuracy": 0.8427,
+        "kappa": 0.8061,
+        "macro": {
+          "precision": 0.768,
+          "recall": 0.8035,
+          "f1": 0.7794,
+          "iou": 0.6544
+        },
+        "weighted": {
+          "precision": 0.8468,
+          "recall": 0.8427,
+          "f1": 0.8438,
+          "iou": 0.7368
+        },
+        "per_class": {
+          "water": {
+            "precision": 0.9634,
+            "recall": 0.9617,
+            "f1": 0.9625,
+            "iou": 0.9278,
+            "support_px": 9722225
+          },
+          "trees": {
+            "precision": 0.9074,
+            "recall": 0.889,
+            "f1": 0.8981,
+            "iou": 0.8151,
+            "support_px": 37971984
+          },
+          "grass": {
+            "precision": 0.6009,
+            "recall": 0.7011,
+            "f1": 0.6471,
+            "iou": 0.4783,
+            "support_px": 4246289
+          },
+          "flooded_veg": {
+            "precision": 0.4593,
+            "recall": 0.7951,
+            "f1": 0.5823,
+            "iou": 0.4107,
+            "support_px": 816808
+          },
+          "crops": {
+            "precision": 0.7863,
+            "recall": 0.8078,
+            "f1": 0.7969,
+            "iou": 0.6624,
+            "support_px": 17437218
+          },
+          "shrub": {
+            "precision": 0.8014,
+            "recall": 0.7443,
+            "f1": 0.7718,
+            "iou": 0.6284,
+            "support_px": 19546534
+          },
+          "built": {
+            "precision": 0.794,
+            "recall": 0.8743,
+            "f1": 0.8322,
+            "iou": 0.7127,
+            "support_px": 10057775
+          },
+          "bare": {
+            "precision": 0.8814,
+            "recall": 0.8534,
+            "f1": 0.8672,
+            "iou": 0.7655,
+            "support_px": 14950695
+          },
+          "snow_ice": {
+            "precision": 0.7182,
+            "recall": 0.6044,
+            "f1": 0.6564,
+            "iou": 0.4886,
+            "support_px": 921956
+          }
+        }
+      },
+      "road": {
+        "tuned_threshold": 0.699999988079071,
+        "at_tuned": {
+          "iou": 0.3555,
+          "f1": 0.5246,
+          "precision": 0.464,
+          "recall": 0.6034,
+          "specificity": 0.9677,
+          "accuracy": 0.9516,
+          "tp": 2781949.0,
+          "fp": 3213946.0,
+          "fn": 1828574.0,
+          "tn": 96312235.0,
+          "positive_rate": 0.0443
+        },
+        "at_0.50": {
+          "iou": 0.3472,
+          "f1": 0.5155,
+          "precision": 0.399,
+          "recall": 0.7279,
+          "specificity": 0.9492,
+          "accuracy": 0.9394,
+          "tp": 3356157.0,
+          "fp": 5055395.0,
+          "fn": 1254366.0,
+          "tn": 94470786.0,
+          "positive_rate": 0.0443
+        },
+        "average_precision": 0.4529
+      },
+      "building": {
+        "tuned_threshold": 0.7599999904632568,
+        "at_tuned": {
+          "iou": 0.3354,
+          "f1": 0.5023,
+          "precision": 0.4041,
+          "recall": 0.6635,
+          "specificity": 0.9846,
+          "accuracy": 0.9796,
+          "tp": 1307862.0,
+          "fp": 1928236.0,
+          "fn": 663166.0,
+          "tn": 123043626.0,
+          "positive_rate": 0.0155
+        },
+        "at_0.50": {
+          "iou": 0.2968,
+          "f1": 0.4578,
+          "precision": 0.3138,
+          "recall": 0.846,
+          "specificity": 0.9708,
+          "accuracy": 0.9689,
+          "tp": 1667539.0,
+          "fp": 3647014.0,
+          "fn": 303489.0,
+          "tn": 121324848.0,
+          "positive_rate": 0.0155
+        },
+        "average_precision": 0.4086
+      },
+      "alpha_mean": [
+        0.8661,
+        0.1015,
+        0.0324
+      ]
+    },
+    "road mapped (OSM)": {
+      "n_tiles": 1589,
+      "n_locations": 109,
+      "lulc": {
+        "labelled_pixels": 93212560,
+        "accuracy": 0.8252,
+        "kappa": 0.7858,
+        "macro": {
+          "precision": 0.6962,
+          "recall": 0.7232,
+          "f1": 0.6962,
+          "iou": 0.582
+        },
+        "weighted": {
+          "precision": 0.8287,
+          "recall": 0.8252,
+          "f1": 0.8256,
+          "iou": 0.7112
+        },
+        "per_class": {
+          "water": {
+            "precision": 0.9645,
+            "recall": 0.9645,
+            "f1": 0.9645,
+            "iou": 0.9314,
+            "support_px": 8207932
+          },
+          "trees": {
+            "precision": 0.8813,
+            "recall": 0.863,
+            "f1": 0.872,
+            "iou": 0.7731,
+            "support_px": 28496730
+          },
+          "grass": {
+            "precision": 0.5617,
+            "recall": 0.6574,
+            "f1": 0.6057,
+            "iou": 0.4345,
+            "support_px": 3346508
+          },
+          "flooded_veg": {
+            "precision": 0.3903,
+            "recall": 0.752,
+            "f1": 0.5139,
+            "iou": 0.3458,
+            "support_px": 597414
+          },
+          "crops": {
+            "precision": 0.7891,
+            "recall": 0.8193,
+            "f1": 0.8039,
+            "iou": 0.6721,
+            "support_px": 16945966
+          },
+          "shrub": {
+            "precision": 0.7834,
+            "recall": 0.7312,
+            "f1": 0.7564,
+            "iou": 0.6083,
+            "support_px": 15597272
+          },
+          "built": {
+            "precision": 0.7941,
+            "recall": 0.876,
+            "f1": 0.833,
+            "iou": 0.7138,
+            "support_px": 10033889
+          },
+          "bare": {
+            "precision": 0.8779,
+            "recall": 0.7951,
+            "f1": 0.8344,
+            "iou": 0.7159,
+            "support_px": 9639868
+          },
+          "snow_ice": {
+            "precision": 0.2235,
+            "recall": 0.0503,
+            "f1": 0.0821,
+            "iou": 0.0428,
+            "support_px": 346984
+          }
+        }
+      },
+      "road": {
+        "tuned_threshold": 0.699999988079071,
+        "at_tuned": {
+          "iou": 0.3555,
+          "f1": 0.5246,
+          "precision": 0.464,
+          "recall": 0.6034,
+          "specificity": 0.9677,
+          "accuracy": 0.9516,
+          "tp": 2781948.0,
+          "fp": 3213944.0,
+          "fn": 1828575.0,
+          "tn": 96312237.0,
+          "positive_rate": 0.0443
+        },
+        "at_0.50": {
+          "iou": 0.3472,
+          "f1": 0.5155,
+          "precision": 0.399,
+          "recall": 0.7279,
+          "specificity": 0.9492,
+          "accuracy": 0.9394,
+          "tp": 3356157.0,
+          "fp": 5055393.0,
+          "fn": 1254366.0,
+          "tn": 94470788.0,
+          "positive_rate": 0.0443
+        },
+        "average_precision": 0.4529
+      },
+      "building": {
+        "tuned_threshold": 0.7599999904632568,
+        "at_tuned": {
+          "iou": 0.3354,
+          "f1": 0.5024,
+          "precision": 0.4042,
+          "recall": 0.6636,
+          "specificity": 0.9811,
+          "accuracy": 0.9751,
+          "tp": 1307729.0,
+          "fp": 1927918.0,
+          "fn": 662994.0,
+          "tn": 100237721.0,
+          "positive_rate": 0.0189
+        },
+        "at_0.50": {
+          "iou": 0.2968,
+          "f1": 0.4578,
+          "precision": 0.3138,
+          "recall": 0.8461,
+          "specificity": 0.9643,
+          "accuracy": 0.9621,
+          "tp": 1667389.0,
+          "fp": 3646591.0,
+          "fn": 303334.0,
+          "tn": 98519048.0,
+          "positive_rate": 0.0189
+        },
+        "average_precision": 0.4087
+      },
+      "alpha_mean": [
+        0.855,
+        0.111,
+        0.034
+      ]
+    },
+    "road UNMAPPED": {
+      "n_tiles": 348,
+      "n_locations": 28,
+      "lulc": {
+        "labelled_pixels": 22458916,
+        "accuracy": 0.9154,
+        "kappa": 0.884,
+        "macro": {
+          "precision": 0.8124,
+          "recall": 0.7745,
+          "f1": 0.7713,
+          "iou": 0.6713
+        },
+        "weighted": {
+          "precision": 0.9157,
+          "recall": 0.9154,
+          "f1": 0.9137,
+          "iou": 0.8514
+        },
+        "per_class": {
+          "water": {
+            "precision": 0.9573,
+            "recall": 0.9469,
+            "f1": 0.9521,
+            "iou": 0.9085,
+            "support_px": 1514293
+          },
+          "trees": {
+            "precision": 0.9858,
+            "recall": 0.9673,
+            "f1": 0.9764,
+            "iou": 0.954,
+            "support_px": 9475248
+          },
+          "grass": {
+            "precision": 0.749,
+            "recall": 0.8636,
+            "f1": 0.8022,
+            "iou": 0.6698,
+            "support_px": 899781
+          },
+          "flooded_veg": {
+            "precision": 0.7619,
+            "recall": 0.9124,
+            "f1": 0.8304,
+            "iou": 0.7099,
+            "support_px": 219394
+          },
+          "crops": {
+            "precision": 0.6335,
+            "recall": 0.4109,
+            "f1": 0.4985,
+            "iou": 0.332,
+            "support_px": 491252
+          },
+          "shrub": {
+            "precision": 0.8743,
+            "recall": 0.7959,
+            "f1": 0.8333,
+            "iou": 0.7142,
+            "support_px": 3949262
+          },
+          "built": {
+            "precision": 0.6902,
+            "recall": 0.1751,
+            "f1": 0.2794,
+            "iou": 0.1624,
+            "support_px": 23886
+          },
+          "bare": {
+            "precision": 0.8866,
+            "recall": 0.9592,
+            "f1": 0.9215,
+            "iou": 0.8544,
+            "support_px": 5310827
+          },
+          "snow_ice": {
+            "precision": 0.7735,
+            "recall": 0.9388,
+            "f1": 0.8482,
+            "iou": 0.7364,
+            "support_px": 574972
+          }
+        }
+      },
+      "road": {
+        "tuned_threshold": 0.699999988079071,
+        "at_tuned": {
+          "iou": 0.0,
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "specificity": 0.0,
+          "accuracy": 0.0,
+          "tp": 0.0,
+          "fp": 0.0,
+          "fn": 0.0,
+          "tn": 0.0,
+          "positive_rate": 0.0
+        },
+        "at_0.50": {
+          "iou": 0.0,
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "specificity": 0.0,
+          "accuracy": 0.0,
+          "tp": 0.0,
+          "fp": 0.0,
+          "fn": 0.0,
+          "tn": 0.0,
+          "positive_rate": 0.0
+        },
+        "average_precision": 0.0
+      },
+      "building": {
+        "tuned_threshold": 0.7599999904632568,
+        "at_tuned": {
+          "iou": 0.2135,
+          "f1": 0.3519,
+          "precision": 0.2949,
+          "recall": 0.4361,
+          "specificity": 1.0,
+          "accuracy": 1.0,
+          "tp": 133.0,
+          "fp": 318.0,
+          "fn": 172.0,
+          "tn": 22805905.0,
+          "positive_rate": 0.0
+        },
+        "at_0.50": {
+          "iou": 0.2063,
+          "f1": 0.3421,
+          "precision": 0.2622,
+          "recall": 0.4918,
+          "specificity": 1.0,
+          "accuracy": 1.0,
+          "tp": 150.0,
+          "fp": 422.0,
+          "fn": 155.0,
+          "tn": 22805801.0,
+          "positive_rate": 0.0
+        },
+        "average_precision": 0.197
+      },
+      "alpha_mean": [
+        0.9146,
+        0.0602,
+        0.0252
+      ]
+    },
+    "LULC labelled": {
+      "n_tiles": 1904,
+      "n_locations": 135,
+      "lulc": {
+        "labelled_pixels": 115671488,
+        "accuracy": 0.8427,
+        "kappa": 0.8061,
+        "macro": {
+          "precision": 0.768,
+          "recall": 0.8035,
+          "f1": 0.7794,
+          "iou": 0.6544
+        },
+        "weighted": {
+          "precision": 0.8468,
+          "recall": 0.8427,
+          "f1": 0.8438,
+          "iou": 0.7368
+        },
+        "per_class": {
+          "water": {
+            "precision": 0.9634,
+            "recall": 0.9617,
+            "f1": 0.9625,
+            "iou": 0.9278,
+            "support_px": 9722225
+          },
+          "trees": {
+            "precision": 0.9074,
+            "recall": 0.889,
+            "f1": 0.8981,
+            "iou": 0.8151,
+            "support_px": 37971984
+          },
+          "grass": {
+            "precision": 0.6009,
+            "recall": 0.7011,
+            "f1": 0.6471,
+            "iou": 0.4783,
+            "support_px": 4246289
+          },
+          "flooded_veg": {
+            "precision": 0.4593,
+            "recall": 0.7951,
+            "f1": 0.5823,
+            "iou": 0.4107,
+            "support_px": 816808
+          },
+          "crops": {
+            "precision": 0.7863,
+            "recall": 0.8078,
+            "f1": 0.7969,
+            "iou": 0.6624,
+            "support_px": 17437218
+          },
+          "shrub": {
+            "precision": 0.8014,
+            "recall": 0.7443,
+            "f1": 0.7718,
+            "iou": 0.6284,
+            "support_px": 19546534
+          },
+          "built": {
+            "precision": 0.794,
+            "recall": 0.8743,
+            "f1": 0.8322,
+            "iou": 0.7127,
+            "support_px": 10057775
+          },
+          "bare": {
+            "precision": 0.8814,
+            "recall": 0.8534,
+            "f1": 0.8672,
+            "iou": 0.7655,
+            "support_px": 14950695
+          },
+          "snow_ice": {
+            "precision": 0.7182,
+            "recall": 0.6044,
+            "f1": 0.6564,
+            "iou": 0.4886,
+            "support_px": 921956
+          }
+        }
+      },
+      "road": {
+        "tuned_threshold": 0.699999988079071,
+        "at_tuned": {
+          "iou": 0.3553,
+          "f1": 0.5244,
+          "precision": 0.4646,
+          "recall": 0.6017,
+          "specificity": 0.9677,
+          "accuracy": 0.9514,
+          "tp": 2732143.0,
+          "fp": 3148125.0,
+          "fn": 1808336.0,
+          "tn": 94285412.0,
+          "positive_rate": 0.0445
+        },
+        "at_0.50": {
+          "iou": 0.3473,
+          "f1": 0.5155,
+          "precision": 0.3995,
+          "recall": 0.7266,
+          "specificity": 0.9491,
+          "accuracy": 0.9392,
+          "tp": 3298966.0,
+          "fp": 4959625.0,
+          "fn": 1241513.0,
+          "tn": 92473912.0,
+          "positive_rate": 0.0445
+        },
+        "average_precision": 0.4526
+      },
+      "building": {
+        "tuned_threshold": 0.7599999904632568,
+        "at_tuned": {
+          "iou": 0.336,
+          "f1": 0.503,
+          "precision": 0.4049,
+          "recall": 0.6641,
+          "specificity": 0.9845,
+          "accuracy": 0.9795,
+          "tp": 1295905.0,
+          "fp": 1904910.0,
+          "fn": 655498.0,
+          "tn": 120923889.0,
+          "positive_rate": 0.0156
+        },
+        "at_0.50": {
+          "iou": 0.2973,
+          "f1": 0.4583,
+          "precision": 0.3142,
+          "recall": 0.8467,
+          "specificity": 0.9706,
+          "accuracy": 0.9687,
+          "tp": 1652171.0,
+          "fp": 3605977.0,
+          "fn": 299232.0,
+          "tn": 119222822.0,
+          "positive_rate": 0.0156
+        },
+        "average_precision": 0.4095
+      },
+      "alpha_mean": [
+        0.8669,
+        0.101,
+        0.0321
+      ]
+    },
+    "fully complete": {
+      "n_tiles": 1556,
+      "n_locations": 107,
+      "lulc": {
+        "labelled_pixels": 93212568,
+        "accuracy": 0.8252,
+        "kappa": 0.7858,
+        "macro": {
+          "precision": 0.6962,
+          "recall": 0.7232,
+          "f1": 0.6962,
+          "iou": 0.582
+        },
+        "weighted": {
+          "precision": 0.8287,
+          "recall": 0.8252,
+          "f1": 0.8256,
+          "iou": 0.7112
+        },
+        "per_class": {
+          "water": {
+            "precision": 0.9645,
+            "recall": 0.9645,
+            "f1": 0.9645,
+            "iou": 0.9314,
+            "support_px": 8207932
+          },
+          "trees": {
+            "precision": 0.8813,
+            "recall": 0.863,
+            "f1": 0.872,
+            "iou": 0.7731,
+            "support_px": 28496732
+          },
+          "grass": {
+            "precision": 0.5617,
+            "recall": 0.6574,
+            "f1": 0.6057,
+            "iou": 0.4345,
+            "support_px": 3346508
+          },
+          "flooded_veg": {
+            "precision": 0.3903,
+            "recall": 0.752,
+            "f1": 0.5139,
+            "iou": 0.3458,
+            "support_px": 597414
+          },
+          "crops": {
+            "precision": 0.7891,
+            "recall": 0.8193,
+            "f1": 0.8039,
+            "iou": 0.6721,
+            "support_px": 16945966
+          },
+          "shrub": {
+            "precision": 0.7834,
+            "recall": 0.7312,
+            "f1": 0.7564,
+            "iou": 0.6083,
+            "support_px": 15597272
+          },
+          "built": {
+            "precision": 0.7941,
+            "recall": 0.876,
+            "f1": 0.833,
+            "iou": 0.7138,
+            "support_px": 10033889
+          },
+          "bare": {
+            "precision": 0.8779,
+            "recall": 0.7951,
+            "f1": 0.8344,
+            "iou": 0.7159,
+            "support_px": 9639868
+          },
+          "snow_ice": {
+            "precision": 0.2235,
+            "recall": 0.0503,
+            "f1": 0.0821,
+            "iou": 0.0428,
+            "support_px": 346984
+          }
+        }
+      },
+      "road": {
+        "tuned_threshold": 0.699999988079071,
+        "at_tuned": {
+          "iou": 0.3553,
+          "f1": 0.5244,
+          "precision": 0.4646,
+          "recall": 0.6017,
+          "specificity": 0.9677,
+          "accuracy": 0.9514,
+          "tp": 2732142.0,
+          "fp": 3148127.0,
+          "fn": 1808337.0,
+          "tn": 94285410.0,
+          "positive_rate": 0.0445
+        },
+        "at_0.50": {
+          "iou": 0.3473,
+          "f1": 0.5155,
+          "precision": 0.3995,
+          "recall": 0.7266,
+          "specificity": 0.9491,
+          "accuracy": 0.9392,
+          "tp": 3298966.0,
+          "fp": 4959626.0,
+          "fn": 1241513.0,
+          "tn": 92473911.0,
+          "positive_rate": 0.0445
+        },
+        "average_precision": 0.4526
+      },
+      "building": {
+        "tuned_threshold": 0.7599999904632568,
+        "at_tuned": {
+          "iou": 0.3361,
+          "f1": 0.5031,
+          "precision": 0.4049,
+          "recall": 0.6641,
+          "specificity": 0.981,
+          "accuracy": 0.9749,
+          "tp": 1295772.0,
+          "fp": 1904591.0,
+          "fn": 655326.0,
+          "tn": 98117985.0,
+          "positive_rate": 0.0191
+        },
+        "at_0.50": {
+          "iou": 0.2973,
+          "f1": 0.4583,
+          "precision": 0.3142,
+          "recall": 0.8467,
+          "specificity": 0.964,
+          "accuracy": 0.9617,
+          "tp": 1652021.0,
+          "fp": 3605554.0,
+          "fn": 299077.0,
+          "tn": 96417022.0,
+          "positive_rate": 0.0191
+        },
+        "average_precision": 0.4096
+      },
+      "alpha_mean": [
+        0.856,
+        0.1104,
+        0.0337
+      ]
+    }
+  }
+}

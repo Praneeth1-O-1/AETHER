@@ -1,0 +1,115 @@
+{
+  "system": {
+    "device": "cuda",
+    "torch": "2.11.0+cu128",
+    "platform": "Linux-6.18.55+-x86_64-with-glibc2.39",
+    "gpu": "Tesla T4",
+    "gpu_mem_gib": 14.6
+  },
+  "checkpoint": "/kaggle/input/notebooks/pr4neeth/notebook539204c56c/AETHER/checkpoints_skip/best.pt",
+  "channels": {
+    "optical": 11,
+    "sar": 7,
+    "dem": 3
+  },
+  "tile": "256x256 px @ 10 m = 6.5536 km^2",
+  "params": {
+    "optical_encoder": 12463440,
+    "sar_encoder": 2795328,
+    "dem_encoder": 758304,
+    "fusion": 2201219,
+    "decoder": 1091008,
+    "task_heads": 55995,
+    "other (aux heads, optical detail branch)": 6939,
+    "total": 19372233
+  },
+  "flops": {
+    "gflops_per_tile": 31.41,
+    "gflops_by_module": {
+      "optical_encoder": 9.966,
+      "sar_encoder": 4.075,
+      "dem_encoder": 1.689,
+      "fusion": 1.258,
+      "decoder": 7.097,
+      "task_heads_and_other": 7.325
+    }
+  },
+  "timing": {
+    "fp32": [
+      {
+        "batch": 1,
+        "latency_ms_mean": 15.56,
+        "latency_ms_p50": 15.12,
+        "latency_ms_p95": 16.28,
+        "tiles_per_s": 64.3,
+        "km2_per_s": 421.3,
+        "peak_mem_mib": 180.7
+      },
+      {
+        "batch": 8,
+        "latency_ms_mean": 99.98,
+        "latency_ms_p50": 99.96,
+        "latency_ms_p95": 101.27,
+        "tiles_per_s": 80.0,
+        "km2_per_s": 524.4,
+        "peak_mem_mib": 832.0
+      },
+      {
+        "batch": 16,
+        "latency_ms_mean": 200.34,
+        "latency_ms_p50": 200.31,
+        "latency_ms_p95": 201.94,
+        "tiles_per_s": 79.9,
+        "km2_per_s": 523.4,
+        "peak_mem_mib": 1578.0
+      },
+      {
+        "batch": 32,
+        "latency_ms_mean": 435.14,
+        "latency_ms_p50": 435.57,
+        "latency_ms_p95": 439.83,
+        "tiles_per_s": 73.5,
+        "km2_per_s": 482.0,
+        "peak_mem_mib": 3069.7
+      }
+    ],
+    "fp16": [
+      {
+        "batch": 1,
+        "latency_ms_mean": 14.15,
+        "latency_ms_p50": 13.89,
+        "latency_ms_p95": 15.31,
+        "tiles_per_s": 70.7,
+        "km2_per_s": 463.3,
+        "peak_mem_mib": 173.4
+      },
+      {
+        "batch": 8,
+        "latency_ms_mean": 46.56,
+        "latency_ms_p50": 46.55,
+        "latency_ms_p95": 47.25,
+        "tiles_per_s": 171.8,
+        "km2_per_s": 1126.0,
+        "peak_mem_mib": 507.9
+      },
+      {
+        "batch": 16,
+        "latency_ms_mean": 92.3,
+        "latency_ms_p50": 92.28,
+        "latency_ms_p95": 93.07,
+        "tiles_per_s": 173.3,
+        "km2_per_s": 1136.0,
+        "peak_mem_mib": 884.4
+      },
+      {
+        "batch": 32,
+        "latency_ms_mean": 184.56,
+        "latency_ms_p50": 184.45,
+        "latency_ms_p95": 186.0,
+        "tiles_per_s": 173.4,
+        "km2_per_s": 1136.3,
+        "peak_mem_mib": 1634.0
+      }
+    ]
+  }
+}

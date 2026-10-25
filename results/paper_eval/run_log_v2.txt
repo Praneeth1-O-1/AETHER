@@ -1,0 +1,645 @@
+$ nvidia-smi --query-gpu=name,memory.total --format=csv
+name, memory.total [MiB]
+Tesla T4, 15360 MiB
+Tesla T4, 15360 MiB
+
+$ ls /kaggle/input; ls /kaggle/input/* | head -20
+datasets
+notebooks
+/kaggle/input/datasets:
+kirethikb
+
+/kaggle/input/notebooks:
+pr4neeth
+DATASET_ROOT: /kaggle/input/datasets/kirethikb/aether-real-cloud-multimodal-eo 
+CHECKPOINT: /kaggle/input/notebooks/pr4neeth/notebook539204c56c/AETHER/checkpoints_skip/best.pt
+checkpoint epoch: 41 best_score: 0.4367945811034744
+
+$ git clone -q -b sar-cloud-remediation https://github.com/Praneeth1-O-1/AETHER.git
+
+$ git log -1 --oneline
+83811c9 fix: evaluation scripts used bfloat16 autocast, which fails on a T4
+
+$ pip install -q -r requirements.txt
+reused caches: ['cloud_masks_aether-real-cloud-multimodal-eo.npz', 'manifest_aether-real-cloud-multimodal-eo.json']
+
+$ bash scripts/run_paper_eval.sh '/kaggle/input/notebooks/pr4neeth/notebook539204c56c/AETHER/checkpoints_skip/best.pt' '/kaggle/input/datasets/kirethikb/aether-real-cloud-multimodal-eo'
+
+=== python scripts/benchmark_gpu.py --checkpoint /kaggle/input/notebooks/pr4neeth/notebook539204c56c/AETHER/checkpoints_skip/best.pt --output outputs/paper/gpu_benchmark.json ===
+2026-10-25 00:51:01,989 | INFO | Loaded /kaggle/input/notebooks/pr4neeth/notebook539204c56c/AETHER/checkpoints_skip/best.pt | epoch 41 | best score 0.4367945811034744 | channels {'optical': 11, 'sar': 7, 'dem': 3}
+fp32 {'batch': 1, 'latency_ms_mean': 15.56, 'latency_ms_p50': 15.12, 'latency_ms_p95': 16.28, 'tiles_per_s': 64.3, 'km2_per_s': 421.3, 'peak_mem_mib': 180.7}
+fp32 {'batch': 8, 'latency_ms_mean': 99.98, 'latency_ms_p50': 99.96, 'latency_ms_p95': 101.27, 'tiles_per_s': 80.0, 'km2_per_s': 524.4, 'peak_mem_mib': 832.0}
+fp32 {'batch': 16, 'latency_ms_mean': 200.34, 'latency_ms_p50': 200.31, 'latency_ms_p95': 201.94, 'tiles_per_s': 79.9, 'km2_per_s': 523.4, 'peak_mem_mib': 1578.0}
+fp32 {'batch': 32, 'latency_ms_mean': 435.14, 'latency_ms_p50': 435.57, 'latency_ms_p95': 439.83, 'tiles_per_s': 73.5, 'km2_per_s': 482.0, 'peak_mem_mib': 3069.7}
+fp16 {'batch': 1, 'latency_ms_mean': 14.15, 'latency_ms_p50': 13.89, 'latency_ms_p95': 15.31, 'tiles_per_s': 70.7, 'km2_per_s': 463.3, 'peak_mem_mib': 173.4}
+fp16 {'batch': 8, 'latency_ms_mean': 46.56, 'latency_ms_p50': 46.55, 'latency_ms_p95': 47.25, 'tiles_per_s': 171.8, 'km2_per_s': 1126.0, 'peak_mem_mib': 507.9}
+fp16 {'batch': 16, 'latency_ms_mean': 92.3, 'latency_ms_p50': 92.28, 'latency_ms_p95': 93.07, 'tiles_per_s': 173.3, 'km2_per_s': 1136.0, 'peak_mem_mib': 884.4}
+fp16 {'batch': 32, 'latency_ms_mean': 184.56, 'latency_ms_p50': 184.45, 'latency_ms_p95': 186.0, 'tiles_per_s': 173.4, 'km2_per_s': 1136.3, 'peak_mem_mib': 1634.0}
+{
+  "system": {
+    "device": "cuda",
+    "torch": "2.11.0+cu128",
+    "platform": "Linux-6.18.55+-x86_64-with-glibc2.39",
+    "gpu": "Tesla T4",
+    "gpu_mem_gib": 14.6
+  },
+  "params": {
+    "optical_encoder": 12463440,
+    "sar_encoder": 2795328,
+    "dem_encoder": 758304,
+    "fusion": 2201219,
+    "decoder": 1091008,
+    "task_heads": 55995,
+    "other (aux heads, optical detail branch)": 6939,
+    "total": 19372233
+  },
+  "flops": {
+    "gflops_per_tile": 31.41,
+    "gflops_by_module": {
+      "optical_encoder": 9.966,
+      "sar_encoder": 4.075,
+      "dem_encoder": 1.689,
+      "fusion": 1.258,
+      "decoder": 7.097,
+      "task_heads_and_other": 7.325
+    }
+  }
+}
+Wrote outputs/paper/gpu_benchmark.json
+
+=== python scripts/tune_thresholds.py --checkpoint /kaggle/input/notebooks/pr4neeth/notebook539204c56c/AETHER/checkpoints_skip/best.pt --dataset-root /kaggle/input/datasets/kirethikb/aether-real-cloud-multimodal-eo --num-workers 4 --output outputs/paper/thresholds_full.json ===
+2026-10-25 00:52:37,860 | INFO | Loaded /kaggle/input/notebooks/pr4neeth/notebook539204c56c/AETHER/checkpoints_skip/best.pt | epoch 41 | best score 0.4367945811034744 | channels {'optical': 11, 'sar': 7, 'dem': 3}
+
+=== VAL sweep (1894 tiles / 143 locations) ===
+   thr  road IoU   road P   road R   bld IoU    bld P    bld R
+  0.05    0.1597    0.164    0.863    0.1394    0.140    0.962
+  0.10    0.1914    0.200    0.819    0.1663    0.168    0.942
+  0.15    0.2110    0.224    0.789    0.1851    0.188    0.925
+  0.20    0.2259    0.243    0.763    0.2003    0.204    0.909
+  0.25    0.2381    0.260    0.741    0.2135    0.219    0.894
+  0.30    0.2486    0.275    0.721    0.2252    0.232    0.880
+  0.35    0.2580    0.290    0.701    0.2362    0.245    0.865
+  0.40    0.2665    0.304    0.681    0.2467    0.258    0.849
+  0.45    0.2742    0.319    0.660    0.2569    0.271    0.831
+  0.50    0.2814    0.335    0.637    0.2668    0.284    0.811
+  0.55    0.2877    0.352    0.612    0.2764    0.299    0.789
+  0.60    0.2934    0.371    0.584    0.2856    0.314    0.762
+  0.65    0.2978    0.392    0.552    0.2941    0.330    0.730
+  0.70    0.2993    0.417    0.515    0.3012    0.348    0.690
+  0.75    0.2961    0.445    0.469    0.3053    0.370    0.637
+  0.80    0.2840    0.480    0.410    0.3028    0.396    0.563
+  0.85    0.2555    0.523    0.333    0.2827    0.428    0.454
+  0.90    0.2011    0.579    0.236    0.2203    0.463    0.296
+  0.95    0.1156    0.650    0.123    0.1031    0.469    0.117
+
+chosen on val -> road 0.70 (IoU 0.2993), building 0.76 (IoU 0.3055)
+  vs. threshold 0.50 -> road IoU 0.2814, building IoU 0.2668
+
+=== TEST (1937 tiles / 137 unseen locations) ===
+  LULC   acc 0.8427  mIoU 0.6544
+  road      IoU 0.3555 (P0.464/R0.603) @thr 0.70   [was 0.3472 @0.50]
+  building  IoU 0.3354 (P0.404/R0.663) @thr 0.76   [was 0.2968 @0.50]
+  per-class IoU: {'water': 0.9278, 'trees': 0.8151, 'grass': 0.4783, 'flooded_veg': 0.4107, 'crops': 0.6624, 'shrub': 0.6284, 'built': 0.7127, 'bare': 0.7655, 'snow_ice': 0.4885}
+
+Wrote outputs/paper/thresholds_full.json
+
+=== python scripts/tune_thresholds.py --checkpoint /kaggle/input/notebooks/pr4neeth/notebook539204c56c/AETHER/checkpoints_skip/best.pt --dataset-root /kaggle/input/datasets/kirethikb/aether-real-cloud-multimodal-eo --num-workers 4 --leak-free --output outputs/paper/thresholds_leakfree.json ===
+2026-10-25 01:22:19,570 | INFO | Loaded /kaggle/input/notebooks/pr4neeth/notebook539204c56c/AETHER/checkpoints_skip/best.pt | epoch 41 | best score 0.4367945811034744 | channels {'optical': 11, 'sar': 7, 'dem': 3}
+
+=== VAL sweep (1894 tiles / 143 locations) ===
+   thr  road IoU   road P   road R   bld IoU    bld P    bld R
+  0.05    0.1597    0.164    0.863    0.1394    0.140    0.962
+  0.10    0.1914    0.200    0.819    0.1663    0.168    0.942
+  0.15    0.2110    0.224    0.789    0.1851    0.188    0.925
+  0.20    0.2259    0.243    0.763    0.2003    0.204    0.909
+  0.25    0.2381    0.260    0.741    0.2135    0.219    0.894
+  0.30    0.2486    0.275    0.721    0.2252    0.232    0.880
+  0.35    0.2580    0.290    0.701    0.2362    0.245    0.865
+  0.40    0.2665    0.304    0.681    0.2467    0.258    0.849
+  0.45    0.2742    0.319    0.660    0.2569    0.271    0.831
+  0.50    0.2814    0.335    0.637    0.2668    0.284    0.811
+  0.55    0.2877    0.352    0.612    0.2764    0.299    0.789
+  0.60    0.2934    0.371    0.584    0.2856    0.314    0.762
+  0.65    0.2978    0.392    0.552    0.2941    0.330    0.730
+  0.70    0.2993    0.417    0.515    0.3012    0.348    0.690
+  0.75    0.2961    0.445    0.469    0.3053    0.370    0.637
+  0.80    0.2840    0.480    0.410    0.3028    0.396    0.563
+  0.85    0.2555    0.523    0.333    0.2827    0.428    0.454
+  0.90    0.2011    0.579    0.236    0.2203    0.463    0.296
+  0.95    0.1156    0.650    0.123    0.1031    0.469    0.117
+
+chosen on val -> road 0.70 (IoU 0.2993), building 0.76 (IoU 0.3055)
+  vs. threshold 0.50 -> road IoU 0.2814, building IoU 0.2668
+
+=== TEST (1752 tiles / 127 unseen locations) ===
+  LULC   acc 0.8449  mIoU 0.6573
+  road      IoU 0.3617 (P0.474/R0.605) @thr 0.70   [was 0.3568 @0.50]
+  building  IoU 0.3437 (P0.414/R0.670) @thr 0.76   [was 0.3093 @0.50]
+  per-class IoU: {'water': 0.9182, 'trees': 0.8199, 'grass': 0.4949, 'flooded_veg': 0.423, 'crops': 0.6801, 'shrub': 0.6357, 'built': 0.6884, 'bare': 0.767, 'snow_ice': 0.4887}
+
+Wrote outputs/paper/thresholds_leakfree.json
+Using val-tuned thresholds: road=0.699999988079071 building=0.7599999904632568
+
+=== python scripts/evaluate_full.py --checkpoint /kaggle/input/notebooks/pr4neeth/notebook539204c56c/AETHER/checkpoints_skip/best.pt --dataset-root /kaggle/input/datasets/kirethikb/aether-real-cloud-multimodal-eo --split test --num-workers 4 --road-threshold 0.699999988079071 --building-threshold 0.7599999904632568 --output outputs/paper/full_evaluation_full.json ===
+2026-10-25 01:24:21,857 | INFO | Loaded /kaggle/input/notebooks/pr4neeth/notebook539204c56c/AETHER/checkpoints_skip/best.pt | epoch 41 | best score 0.4367945811034744 | channels {'optical': 11, 'sar': 7, 'dem': 3}
+
+Split 'test': 1937 tiles / 137 held-out locations
+
+================================================================================================
+=== SCENARIO: ALL  (1937 tiles / 137 locations)  alpha[O,S,D] [0.8661, 0.1015, 0.0324]
+================================================================================================
+
+### LULC -- ALL  (1937 tiles, 115,671,488 labelled px)
+  overall accuracy 0.8427   Cohen's kappa 0.8061
+  class         precision   recall       F1      IoU       support
+  water           0.9634   0.9617   0.9625   0.9278     9,722,225
+  trees           0.9074   0.8890   0.8981   0.8151    37,971,984
+  grass           0.6009   0.7011   0.6471   0.4783     4,246,289
+  flooded_veg     0.4593   0.7951   0.5823   0.4107       816,808
+  crops           0.7863   0.8078   0.7969   0.6624    17,437,218
+  shrub           0.8014   0.7443   0.7718   0.6284    19,546,534
+  built           0.7940   0.8743   0.8322   0.7127    10,057,775
+  bare            0.8814   0.8534   0.8672   0.7655    14,950,695
+  snow_ice        0.7182   0.6044   0.6564   0.4886       921,956
+  macro avg        0.7680   0.8035   0.7794   0.6544
+  weighted avg     0.8468   0.8427   0.8438   0.7368
+
+### Road / Building -- ALL
+  head         thr  precision   recall       F1      IoU  accuracy  specif.      AP  pos rate
+  road        0.70     0.4640   0.6034   0.5246   0.3555    0.9516   0.9677  0.4529    0.0443
+              0.50     0.3990   0.7279   0.5155   0.3472    0.9394   0.9492            0.0443
+  building    0.76     0.4041   0.6635   0.5023   0.3354    0.9796   0.9846  0.4086    0.0155
+              0.50     0.3138   0.8460   0.4578   0.2968    0.9689   0.9708            0.0155
+
+================================================================================================
+=== SCENARIO: optical present  (1937 tiles / 137 locations)  alpha[O,S,D] [0.8661, 0.1015, 0.0324]
+================================================================================================
+
+### LULC -- optical present  (1937 tiles, 115,671,488 labelled px)
+  overall accuracy 0.8427   Cohen's kappa 0.8061
+  class         precision   recall       F1      IoU       support
+  water           0.9634   0.9617   0.9625   0.9278     9,722,225
+  trees           0.9074   0.8890   0.8981   0.8151    37,971,984
+  grass           0.6009   0.7011   0.6471   0.4783     4,246,289
+  flooded_veg     0.4593   0.7951   0.5823   0.4107       816,808
+  crops           0.7863   0.8078   0.7969   0.6624    17,437,218
+  shrub           0.8014   0.7443   0.7718   0.6284    19,546,534
+  built           0.7940   0.8743   0.8322   0.7127    10,057,775
+  bare            0.8814   0.8534   0.8672   0.7655    14,950,695
+  snow_ice        0.7182   0.6044   0.6564   0.4886       921,956
+  macro avg        0.7680   0.8035   0.7794   0.6544
+  weighted avg     0.8468   0.8427   0.8438   0.7368
+
+### Road / Building -- optical present
+  head         thr  precision   recall       F1      IoU  accuracy  specif.      AP  pos rate
+  road        0.70     0.4640   0.6034   0.5246   0.3555    0.9516   0.9677  0.4529    0.0443
+              0.50     0.3990   0.7279   0.5155   0.3472    0.9394   0.9492            0.0443
+  building    0.76     0.4041   0.6635   0.5023   0.3354    0.9796   0.9846  0.4086    0.0155
+              0.50     0.3138   0.8460   0.4578   0.2968    0.9689   0.9708            0.0155
+
+=== optical MISSING: 0 tiles, skipped ===
+
+================================================================================================
+=== SCENARIO: SAR present  (1937 tiles / 137 locations)  alpha[O,S,D] [0.8661, 0.1015, 0.0324]
+================================================================================================
+
+### LULC -- SAR present  (1937 tiles, 115,671,488 labelled px)
+  overall accuracy 0.8427   Cohen's kappa 0.8061
+  class         precision   recall       F1      IoU       support
+  water           0.9634   0.9617   0.9625   0.9278     9,722,225
+  trees           0.9074   0.8890   0.8981   0.8151    37,971,984
+  grass           0.6009   0.7011   0.6471   0.4783     4,246,289
+  flooded_veg     0.4593   0.7951   0.5823   0.4107       816,808
+  crops           0.7863   0.8078   0.7969   0.6624    17,437,218
+  shrub           0.8014   0.7443   0.7718   0.6284    19,546,534
+  built           0.7940   0.8743   0.8322   0.7127    10,057,775
+  bare            0.8814   0.8534   0.8672   0.7655    14,950,695
+  snow_ice        0.7182   0.6044   0.6564   0.4886       921,956
+  macro avg        0.7680   0.8035   0.7794   0.6544
+  weighted avg     0.8468   0.8427   0.8438   0.7368
+
+### Road / Building -- SAR present
+  head         thr  precision   recall       F1      IoU  accuracy  specif.      AP  pos rate
+  road        0.70     0.4640   0.6034   0.5246   0.3555    0.9516   0.9677  0.4529    0.0443
+              0.50     0.3990   0.7279   0.5155   0.3472    0.9394   0.9492            0.0443
+  building    0.76     0.4041   0.6635   0.5023   0.3354    0.9796   0.9846  0.4086    0.0155
+              0.50     0.3138   0.8460   0.4578   0.2968    0.9689   0.9708            0.0155
+
+=== SAR MISSING: 0 tiles, skipped ===
+
+================================================================================================
+=== SCENARIO: road mapped (OSM)  (1589 tiles / 109 locations)  alpha[O,S,D] [0.855, 0.111, 0.034]
+================================================================================================
+
+### LULC -- road mapped (OSM)  (1589 tiles, 93,212,560 labelled px)
+  overall accuracy 0.8252   Cohen's kappa 0.7858
+  class         precision   recall       F1      IoU       support
+  water           0.9645   0.9645   0.9645   0.9314     8,207,932
+  trees           0.8813   0.8630   0.8720   0.7731    28,496,730
+  grass           0.5617   0.6574   0.6057   0.4345     3,346,508
+  flooded_veg     0.3903   0.7520   0.5139   0.3458       597,414
+  crops           0.7891   0.8193   0.8039   0.6721    16,945,966
+  shrub           0.7834   0.7312   0.7564   0.6083    15,597,272
+  built           0.7941   0.8760   0.8330   0.7138    10,033,889
+  bare            0.8779   0.7951   0.8344   0.7159     9,639,868
+  snow_ice        0.2235   0.0503   0.0821   0.0428       346,984
+  macro avg        0.6962   0.7232   0.6962   0.5820
+  weighted avg     0.8287   0.8252   0.8256   0.7112
+
+### Road / Building -- road mapped (OSM)
+  head         thr  precision   recall       F1      IoU  accuracy  specif.      AP  pos rate
+  road        0.70     0.4640   0.6034   0.5246   0.3555    0.9516   0.9677  0.4529    0.0443
+              0.50     0.3990   0.7279   0.5155   0.3472    0.9394   0.9492            0.0443
+  building    0.76     0.4042   0.6636   0.5024   0.3354    0.9751   0.9811  0.4087    0.0189
+              0.50     0.3138   0.8461   0.4578   0.2968    0.9621   0.9643            0.0189
+
+================================================================================================
+=== SCENARIO: road UNMAPPED  (348 tiles / 28 locations)  alpha[O,S,D] [0.9146, 0.0602, 0.0252]
+================================================================================================
+
+### LULC -- road UNMAPPED  (348 tiles, 22,458,916 labelled px)
+  overall accuracy 0.9154   Cohen's kappa 0.8840
+  class         precision   recall       F1      IoU       support
+  water           0.9573   0.9469   0.9521   0.9085     1,514,293
+  trees           0.9858   0.9673   0.9764   0.9540     9,475,248
+  grass           0.7490   0.8636   0.8022   0.6698       899,781
+  flooded_veg     0.7619   0.9124   0.8304   0.7099       219,394
+  crops           0.6335   0.4109   0.4985   0.3320       491,252
+  shrub           0.8743   0.7959   0.8333   0.7142     3,949,262
+  built           0.6902   0.1751   0.2794   0.1624        23,886
+  bare            0.8866   0.9592   0.9215   0.8544     5,310,827
+  snow_ice        0.7735   0.9388   0.8482   0.7364       574,972
+  macro avg        0.8124   0.7745   0.7713   0.6713
+  weighted avg     0.9157   0.9154   0.9137   0.8514
+
+### Road / Building -- road UNMAPPED
+  head         thr  precision   recall       F1      IoU  accuracy  specif.      AP  pos rate
+  road        0.70     0.0000   0.0000   0.0000   0.0000    0.0000   0.0000  0.0000    0.0000
+              0.50     0.0000   0.0000   0.0000   0.0000    0.0000   0.0000            0.0000
+  building    0.76     0.2949   0.4361   0.3519   0.2135    1.0000   1.0000  0.1970    0.0000
+              0.50     0.2622   0.4918   0.3421   0.2063    1.0000   1.0000            0.0000
+
+================================================================================================
+=== SCENARIO: LULC labelled  (1904 tiles / 135 locations)  alpha[O,S,D] [0.8669, 0.101, 0.0321]
+================================================================================================
+
+### LULC -- LULC labelled  (1904 tiles, 115,671,488 labelled px)
+  overall accuracy 0.8427   Cohen's kappa 0.8061
+  class         precision   recall       F1      IoU       support
+  water           0.9634   0.9617   0.9625   0.9278     9,722,225
+  trees           0.9074   0.8890   0.8981   0.8151    37,971,984
+  grass           0.6009   0.7011   0.6471   0.4783     4,246,289
+  flooded_veg     0.4593   0.7951   0.5823   0.4107       816,808
+  crops           0.7863   0.8078   0.7969   0.6624    17,437,218
+  shrub           0.8014   0.7443   0.7718   0.6284    19,546,534
+  built           0.7940   0.8743   0.8322   0.7127    10,057,775
+  bare            0.8814   0.8534   0.8672   0.7655    14,950,695
+  snow_ice        0.7182   0.6044   0.6564   0.4886       921,956
+  macro avg        0.7680   0.8035   0.7794   0.6544
+  weighted avg     0.8468   0.8427   0.8438   0.7368
+
+### Road / Building -- LULC labelled
+  head         thr  precision   recall       F1      IoU  accuracy  specif.      AP  pos rate
+  road        0.70     0.4646   0.6017   0.5244   0.3553    0.9514   0.9677  0.4526    0.0445
+              0.50     0.3995   0.7266   0.5155   0.3473    0.9392   0.9491            0.0445
+  building    0.76     0.4049   0.6641   0.5030   0.3360    0.9795   0.9845  0.4095    0.0156
+              0.50     0.3142   0.8467   0.4583   0.2973    0.9687   0.9706            0.0156
+
+================================================================================================
+=== SCENARIO: fully complete  (1556 tiles / 107 locations)  alpha[O,S,D] [0.856, 0.1104, 0.0337]
+================================================================================================
+
+### LULC -- fully complete  (1556 tiles, 93,212,568 labelled px)
+  overall accuracy 0.8252   Cohen's kappa 0.7858
+  class         precision   recall       F1      IoU       support
+  water           0.9645   0.9645   0.9645   0.9314     8,207,932
+  trees           0.8813   0.8630   0.8720   0.7731    28,496,732
+  grass           0.5617   0.6574   0.6057   0.4345     3,346,508
+  flooded_veg     0.3903   0.7520   0.5139   0.3458       597,414
+  crops           0.7891   0.8193   0.8039   0.6721    16,945,966
+  shrub           0.7834   0.7312   0.7564   0.6083    15,597,272
+  built           0.7941   0.8760   0.8330   0.7138    10,033,889
+  bare            0.8779   0.7951   0.8344   0.7159     9,639,868
+  snow_ice        0.2235   0.0503   0.0821   0.0428       346,984
+  macro avg        0.6962   0.7232   0.6962   0.5820
+  weighted avg     0.8287   0.8252   0.8256   0.7112
+
+### Road / Building -- fully complete
+  head         thr  precision   recall       F1      IoU  accuracy  specif.      AP  pos rate
+  road        0.70     0.4646   0.6017   0.5244   0.3553    0.9514   0.9677  0.4526    0.0445
+              0.50     0.3995   0.7266   0.5155   0.3473    0.9392   0.9491            0.0445
+  building    0.76     0.4049   0.6641   0.5031   0.3361    0.9749   0.9810  0.4096    0.0191
+              0.50     0.3142   0.8467   0.4583   0.2973    0.9617   0.9640            0.0191
+
+Wrote outputs/paper/full_evaluation_full.json
+
+=== python scripts/ablate_modalities.py --checkpoint /kaggle/input/notebooks/pr4neeth/notebook539204c56c/AETHER/checkpoints_skip/best.pt --dataset-root /kaggle/input/datasets/kirethikb/aether-real-cloud-multimodal-eo --split test --num-workers 4 --road-threshold 0.699999988079071 --building-threshold 0.7599999904632568 --output outputs/paper/modality_ablation_full.json ===
+2026-10-25 01:30:07,433 | INFO | Loaded /kaggle/input/notebooks/pr4neeth/notebook539204c56c/AETHER/checkpoints_skip/best.pt | epoch 41 | best score 0.4367945811034744 | channels {'optical': 11, 'sar': 7, 'dem': 3}
+
+Ablating on 'test': 1937 tiles / 137 locations
+
+modality set             acc    mIoU   d mIoU    road     bld   alpha[O,S,D]
+------------------------------------------------------------------------------------
+all (baseline)        0.8418  0.6523           0.3554  0.3354   [0.8629, 0.109, 0.0281]
+optical only          0.8291  0.6348  -0.0175  0.3465  0.3218   [1.0, 0.0, 0.0]
+SAR only              0.6013  0.3830  -0.2694  0.2152  0.2056   [0.0, 1.0, 0.0]
+DEM only              0.4659  0.2295  -0.4229  0.0001  0.0000   [0.0, 0.0, 1.0]
+no optical (S+D)      0.6462  0.4244  -0.2279  0.2167  0.2104   [0.0, 0.7845, 0.2155]
+no SAR (O+D)          0.8354  0.6439  -0.0084  0.3471  0.3260   [0.933, 0.0, 0.067]
+no DEM (O+S)          0.8395  0.6463  -0.0061  0.3538  0.3324   [0.8674, 0.1326, 0.0]
+nothing               0.3283  0.0365  -0.6159  0.0000  0.0000   [0.3689, 0.5621, 0.069]
+
+--- unique contribution (mIoU lost when ONLY this modality is removed) ---
+  optical  +0.2279 mIoU  (+34.9% relative)
+  SAR      +0.0084 mIoU  (+1.3% relative)
+  DEM      +0.0061 mIoU  (+0.9% relative)
+
+--- standalone sufficiency (mIoU using ONLY this modality) ---
+  optical  0.6348 mIoU  (97.3% of full model)
+  SAR      0.3830 mIoU  (58.7% of full model)
+  DEM      0.2295 mIoU  (35.2% of full model)
+
+Wrote outputs/paper/modality_ablation_full.json
+
+=== python scripts/cloud_curve.py --checkpoint /kaggle/input/notebooks/pr4neeth/notebook539204c56c/AETHER/checkpoints_skip/best.pt --dataset-root /kaggle/input/datasets/kirethikb/aether-real-cloud-multimodal-eo --split test --num-workers 4 --output outputs/paper/cloud_curve_full.json ===
+2026-10-25 01:37:44,999 | INFO | Loaded /kaggle/input/notebooks/pr4neeth/notebook539204c56c/AETHER/checkpoints_skip/best.pt | epoch 41 | best score 0.4367945811034744 | channels {'optical': 11, 'sar': 7, 'dem': 3}
+2026-10-25 01:37:45,147 | INFO | test: 1937 tiles / 137 locations
+2026-10-25 01:41:31,460 | INFO | cloud 0%: acc 0.8427 mIoU 0.6544 alpha[O,S,D] [0.8662, 0.1014, 0.0323] | SAR worth +0.0105 mIoU | DEM worth +0.0067 | SAR+DEM only: acc 0.6640 mIoU 0.4410
+2026-10-25 01:45:43,349 | INFO | cloud 25%: acc 0.8236 mIoU 0.6282 alpha[O,S,D] [0.8193, 0.137, 0.0436] | SAR worth +0.0169 mIoU | DEM worth +0.0064 | SAR+DEM only: acc 0.6640 mIoU 0.4410
+2026-10-25 01:49:55,261 | INFO | cloud 50%: acc 0.8011 mIoU 0.5978 alpha[O,S,D] [0.7322, 0.2038, 0.064] | SAR worth +0.0248 mIoU | DEM worth +0.0069 | SAR+DEM only: acc 0.6640 mIoU 0.4410
+2026-10-25 01:54:08,468 | INFO | cloud 75%: acc 0.7737 mIoU 0.5598 alpha[O,S,D] [0.5939, 0.3113, 0.0948] | SAR worth +0.0390 mIoU | DEM worth +0.0099 | SAR+DEM only: acc 0.6640 mIoU 0.4410
+2026-10-25 01:57:45,831 | INFO | cloud 100%: acc 0.6640 mIoU 0.4410 alpha[O,S,D] [0.0, 0.7325, 0.2675] | SAR worth +0.2115 mIoU | DEM worth +0.0373 | SAR+DEM only: acc 0.6640 mIoU 0.4410
+2026-10-25 01:57:45,832 | INFO | Wrote outputs/paper/cloud_curve_full.json
+2026-10-25 01:57:45,832 | INFO | --- acceptance ---
+2026-10-25 01:57:45,832 | INFO |   SAR ablation cost, clear sky : +0.0105 (target >= 0.03)
+2026-10-25 01:57:45,832 | INFO |   SAR ablation cost, full cloud: +0.2115 (target >= 0.20)
+2026-10-25 01:57:45,833 | INFO |   SAR+DEM only under full cloud: acc 0.6640 (target >= 0.72), mIoU 0.4410 (target >= 0.50)
+2026-10-25 01:57:45,833 | INFO |   alpha_sar clear -> full cloud : 0.1014 -> 0.7325 (target >= 2x)
+
+=== python scripts/evaluate_full.py --checkpoint /kaggle/input/notebooks/pr4neeth/notebook539204c56c/AETHER/checkpoints_skip/best.pt --dataset-root /kaggle/input/datasets/kirethikb/aether-real-cloud-multimodal-eo --split test --num-workers 4 --road-threshold 0.699999988079071 --building-threshold 0.7599999904632568 --leak-free --output outputs/paper/full_evaluation_leakfree.json ===
+2026-10-25 01:57:51,829 | INFO | Loaded /kaggle/input/notebooks/pr4neeth/notebook539204c56c/AETHER/checkpoints_skip/best.pt | epoch 41 | best score 0.4367945811034744 | channels {'optical': 11, 'sar': 7, 'dem': 3}
+
+Split 'test': 1752 tiles / 127 held-out locations
+
+================================================================================================
+=== SCENARIO: ALL  (1752 tiles / 127 locations)  alpha[O,S,D] [0.875, 0.0932, 0.0318]
+================================================================================================
+
+### LULC -- ALL  (1752 tiles, 105,411,752 labelled px)
+  overall accuracy 0.8449   Cohen's kappa 0.8087
+  class         precision   recall       F1      IoU       support
+  water           0.9584   0.9564   0.9574   0.9182     8,303,503
+  trees           0.9118   0.8905   0.9010   0.8199    34,409,924
+  grass           0.6058   0.7300   0.6621   0.4949     3,698,722
+  flooded_veg     0.4739   0.7974   0.5945   0.4230       804,793
+  crops           0.7926   0.8272   0.8096   0.6801    16,225,303
+  shrub           0.8108   0.7465   0.7773   0.6357    17,915,628
+  built           0.7778   0.8569   0.8154   0.6884     8,207,269
+  bare            0.8820   0.8546   0.8681   0.7669    14,925,090
+  snow_ice        0.7182   0.6047   0.6566   0.4887       921,521
+  macro avg        0.7701   0.8071   0.7824   0.6573
+  weighted avg     0.8495   0.8449   0.8462   0.7397
+
+### Road / Building -- ALL
+  head         thr  precision   recall       F1      IoU  accuracy  specif.      AP  pos rate
+  road        0.70     0.4737   0.6048   0.5313   0.3617    0.9539   0.9697  0.4550    0.0432
+              0.50     0.4130   0.7239   0.5260   0.3568    0.9436   0.9536            0.0432
+  building    0.76     0.4136   0.6704   0.5116   0.3437    0.9808   0.9855  0.4163    0.0150
+              0.50     0.3283   0.8423   0.4724   0.3093    0.9717   0.9737            0.0150
+
+================================================================================================
+=== SCENARIO: optical present  (1752 tiles / 127 locations)  alpha[O,S,D] [0.875, 0.0932, 0.0318]
+================================================================================================
+
+### LULC -- optical present  (1752 tiles, 105,411,752 labelled px)
+  overall accuracy 0.8449   Cohen's kappa 0.8087
+  class         precision   recall       F1      IoU       support
+  water           0.9584   0.9564   0.9574   0.9182     8,303,503
+  trees           0.9118   0.8905   0.9010   0.8199    34,409,924
+  grass           0.6058   0.7300   0.6621   0.4949     3,698,722
+  flooded_veg     0.4739   0.7974   0.5945   0.4230       804,793
+  crops           0.7926   0.8272   0.8096   0.6801    16,225,303
+  shrub           0.8108   0.7465   0.7773   0.6357    17,915,628
+  built           0.7778   0.8569   0.8154   0.6884     8,207,269
+  bare            0.8820   0.8546   0.8681   0.7669    14,925,090
+  snow_ice        0.7182   0.6047   0.6566   0.4887       921,521
+  macro avg        0.7701   0.8071   0.7824   0.6573
+  weighted avg     0.8495   0.8449   0.8462   0.7397
+
+### Road / Building -- optical present
+  head         thr  precision   recall       F1      IoU  accuracy  specif.      AP  pos rate
+  road        0.70     0.4737   0.6048   0.5313   0.3617    0.9539   0.9697  0.4550    0.0432
+              0.50     0.4130   0.7239   0.5260   0.3568    0.9436   0.9536            0.0432
+  building    0.76     0.4136   0.6704   0.5116   0.3437    0.9808   0.9855  0.4163    0.0150
+              0.50     0.3283   0.8423   0.4724   0.3093    0.9717   0.9737            0.0150
+
+=== optical MISSING: 0 tiles, skipped ===
+
+================================================================================================
+=== SCENARIO: SAR present  (1752 tiles / 127 locations)  alpha[O,S,D] [0.875, 0.0932, 0.0318]
+================================================================================================
+
+### LULC -- SAR present  (1752 tiles, 105,411,752 labelled px)
+  overall accuracy 0.8449   Cohen's kappa 0.8087
+  class         precision   recall       F1      IoU       support
+  water           0.9584   0.9564   0.9574   0.9182     8,303,503
+  trees           0.9118   0.8905   0.9010   0.8199    34,409,924
+  grass           0.6058   0.7300   0.6621   0.4949     3,698,722
+  flooded_veg     0.4739   0.7974   0.5945   0.4230       804,793
+  crops           0.7926   0.8272   0.8096   0.6801    16,225,303
+  shrub           0.8108   0.7465   0.7773   0.6357    17,915,628
+  built           0.7778   0.8569   0.8154   0.6884     8,207,269
+  bare            0.8820   0.8546   0.8681   0.7669    14,925,090
+  snow_ice        0.7182   0.6047   0.6566   0.4887       921,521
+  macro avg        0.7701   0.8071   0.7824   0.6573
+  weighted avg     0.8495   0.8449   0.8462   0.7397
+
+### Road / Building -- SAR present
+  head         thr  precision   recall       F1      IoU  accuracy  specif.      AP  pos rate
+  road        0.70     0.4737   0.6048   0.5313   0.3617    0.9539   0.9697  0.4550    0.0432
+              0.50     0.4130   0.7239   0.5260   0.3568    0.9436   0.9536            0.0432
+  building    0.76     0.4136   0.6704   0.5116   0.3437    0.9808   0.9855  0.4163    0.0150
+              0.50     0.3283   0.8423   0.4724   0.3093    0.9717   0.9737            0.0150
+
+=== SAR MISSING: 0 tiles, skipped ===
+
+================================================================================================
+=== SCENARIO: road mapped (OSM)  (1404 tiles / 99 locations)  alpha[O,S,D] [0.8648, 0.1018, 0.0335]
+================================================================================================
+
+### LULC -- road mapped (OSM)  (1404 tiles, 82,952,840 labelled px)
+  overall accuracy 0.8258   Cohen's kappa 0.7867
+  class         precision   recall       F1      IoU       support
+  water           0.9586   0.9585   0.9585   0.9204     6,789,210
+  trees           0.8835   0.8613   0.8723   0.7735    24,934,674
+  grass           0.5624   0.6871   0.6185   0.4477     2,798,941
+  flooded_veg     0.4046   0.7544   0.5267   0.3575       585,399
+  crops           0.7957   0.8402   0.8173   0.6911    15,734,051
+  shrub           0.7931   0.7325   0.7616   0.6150    13,966,366
+  built           0.7778   0.8589   0.8164   0.6897     8,183,383
+  bare            0.8790   0.7968   0.8359   0.7181     9,614,263
+  snow_ice        0.2235   0.0503   0.0821   0.0428       346,549
+  macro avg        0.6976   0.7267   0.6988   0.5840
+  weighted avg     0.8298   0.8258   0.8262   0.7115
+
+### Road / Building -- road mapped (OSM)
+  head         thr  precision   recall       F1      IoU  accuracy  specif.      AP  pos rate
+  road        0.70     0.4737   0.6048   0.5313   0.3617    0.9539   0.9697  0.4550    0.0432
+              0.50     0.4130   0.7239   0.5260   0.3568    0.9436   0.9536            0.0432
+  building    0.76     0.4136   0.6704   0.5116   0.3437    0.9760   0.9818  0.4163    0.0188
+              0.50     0.3283   0.8423   0.4725   0.3093    0.9647   0.9671            0.0188
+
+================================================================================================
+=== SCENARIO: road UNMAPPED  (348 tiles / 28 locations)  alpha[O,S,D] [0.9146, 0.0602, 0.0252]
+================================================================================================
+
+### LULC -- road UNMAPPED  (348 tiles, 22,458,916 labelled px)
+  overall accuracy 0.9154   Cohen's kappa 0.8840
+  class         precision   recall       F1      IoU       support
+  water           0.9573   0.9469   0.9521   0.9085     1,514,293
+  trees           0.9858   0.9673   0.9764   0.9540     9,475,248
+  grass           0.7490   0.8636   0.8022   0.6698       899,781
+  flooded_veg     0.7619   0.9124   0.8304   0.7099       219,394
+  crops           0.6335   0.4109   0.4985   0.3320       491,252
+  shrub           0.8743   0.7959   0.8333   0.7142     3,949,262
+  built           0.6902   0.1751   0.2794   0.1624        23,886
+  bare            0.8866   0.9592   0.9215   0.8544     5,310,827
+  snow_ice        0.7735   0.9388   0.8482   0.7364       574,972
+  macro avg        0.8124   0.7745   0.7713   0.6713
+  weighted avg     0.9157   0.9154   0.9137   0.8514
+
+### Road / Building -- road UNMAPPED
+  head         thr  precision   recall       F1      IoU  accuracy  specif.      AP  pos rate
+  road        0.70     0.0000   0.0000   0.0000   0.0000    0.0000   0.0000  0.0000    0.0000
+              0.50     0.0000   0.0000   0.0000   0.0000    0.0000   0.0000            0.0000
+  building    0.76     0.2949   0.4361   0.3519   0.2135    1.0000   1.0000  0.1970    0.0000
+              0.50     0.2622   0.4918   0.3421   0.2063    1.0000   1.0000            0.0000
+
+================================================================================================
+=== SCENARIO: LULC labelled  (1731 tiles / 125 locations)  alpha[O,S,D] [0.875, 0.0933, 0.0318]
+================================================================================================
+
+### LULC -- LULC labelled  (1731 tiles, 105,411,752 labelled px)
+  overall accuracy 0.8449   Cohen's kappa 0.8087
+  class         precision   recall       F1      IoU       support
+  water           0.9584   0.9564   0.9574   0.9182     8,303,503
+  trees           0.9118   0.8905   0.9010   0.8199    34,409,924
+  grass           0.6058   0.7300   0.6621   0.4949     3,698,722
+  flooded_veg     0.4739   0.7974   0.5945   0.4230       804,793
+  crops           0.7926   0.8272   0.8096   0.6801    16,225,303
+  shrub           0.8108   0.7465   0.7773   0.6357    17,915,628
+  built           0.7778   0.8569   0.8154   0.6884     8,207,269
+  bare            0.8820   0.8546   0.8681   0.7669    14,925,090
+  snow_ice        0.7182   0.6047   0.6566   0.4887       921,521
+  macro avg        0.7701   0.8071   0.7824   0.6573
+  weighted avg     0.8495   0.8449   0.8462   0.7397
+
+### Road / Building -- LULC labelled
+  head         thr  precision   recall       F1      IoU  accuracy  specif.      AP  pos rate
+  road        0.70     0.4747   0.6027   0.5311   0.3616    0.9541   0.9700  0.4545    0.0431
+              0.50     0.4139   0.7220   0.5262   0.3570    0.9439   0.9539            0.0431
+  building    0.76     0.4145   0.6711   0.5125   0.3445    0.9808   0.9855  0.4173    0.0150
+              0.50     0.3290   0.8429   0.4732   0.3100    0.9718   0.9737            0.0150
+
+================================================================================================
+=== SCENARIO: fully complete  (1383 tiles / 97 locations)  alpha[O,S,D] [0.8647, 0.1019, 0.0335]
+================================================================================================
+
+### LULC -- fully complete  (1383 tiles, 82,952,840 labelled px)
+  overall accuracy 0.8258   Cohen's kappa 0.7867
+  class         precision   recall       F1      IoU       support
+  water           0.9586   0.9585   0.9585   0.9204     6,789,210
+  trees           0.8835   0.8613   0.8723   0.7735    24,934,674
+  grass           0.5624   0.6871   0.6185   0.4477     2,798,941
+  flooded_veg     0.4046   0.7544   0.5267   0.3575       585,399
+  crops           0.7957   0.8402   0.8173   0.6911    15,734,051
+  shrub           0.7931   0.7325   0.7616   0.6150    13,966,366
+  built           0.7778   0.8589   0.8164   0.6897     8,183,383
+  bare            0.8790   0.7968   0.8359   0.7181     9,614,263
+  snow_ice        0.2235   0.0503   0.0821   0.0428       346,549
+  macro avg        0.6976   0.7267   0.6988   0.5840
+  weighted avg     0.8298   0.8258   0.8262   0.7115
+
+### Road / Building -- fully complete
+  head         thr  precision   recall       F1      IoU  accuracy  specif.      AP  pos rate
+  road        0.70     0.4747   0.6027   0.5311   0.3616    0.9541   0.9700  0.4545    0.0431
+              0.50     0.4139   0.7220   0.5262   0.3570    0.9439   0.9539            0.0431
+  building    0.76     0.4145   0.6711   0.5125   0.3445    0.9760   0.9818  0.4173    0.0188
+              0.50     0.3290   0.8430   0.4733   0.3100    0.9647   0.9670            0.0188
+
+Wrote outputs/paper/full_evaluation_leakfree.json
+
+=== python scripts/ablate_modalities.py --checkpoint /kaggle/input/notebooks/pr4neeth/notebook539204c56c/AETHER/checkpoints_skip/best.pt --dataset-root /kaggle/input/datasets/kirethikb/aether-real-cloud-multimodal-eo --split test --num-workers 4 --road-threshold 0.699999988079071 --building-threshold 0.7599999904632568 --leak-free --output outputs/paper/modality_ablation_leakfree.json ===
+2026-10-25 02:03:04,556 | INFO | Loaded /kaggle/input/notebooks/pr4neeth/notebook539204c56c/AETHER/checkpoints_skip/best.pt | epoch 41 | best score 0.4367945811034744 | channels {'optical': 11, 'sar': 7, 'dem': 3}
+
+Ablating on 'test': 1752 tiles / 127 locations
+
+modality set             acc    mIoU   d mIoU    road     bld   alpha[O,S,D]
+------------------------------------------------------------------------------------
+all (baseline)        0.8439  0.6551           0.3615  0.3437   [0.8711, 0.1018, 0.0271]
+optical only          0.8329  0.6392  -0.0159  0.3585  0.3345   [1.0, 0.0, 0.0]
+SAR only              0.5917  0.3746  -0.2805  0.2093  0.2024   [0.0, 1.0, 0.0]
+DEM only              0.4798  0.2333  -0.4218  0.0001  0.0000   [0.0, 0.0, 1.0]
+no optical (S+D)      0.6412  0.4177  -0.2374  0.2098  0.2078   [0.0, 0.7788, 0.2212]
+no SAR (O+D)          0.8390  0.6480  -0.0071  0.3594  0.3391   [0.9356, 0.0, 0.0644]
+no DEM (O+S)          0.8413  0.6490  -0.0061  0.3602  0.3404   [0.8763, 0.1237, 0.0]
+nothing               0.3264  0.0363  -0.6189  0.0000  0.0000   [0.3689, 0.5621, 0.069]
+
+--- unique contribution (mIoU lost when ONLY this modality is removed) ---
+  optical  +0.2374 mIoU  (+36.2% relative)
+  SAR      +0.0071 mIoU  (+1.1% relative)
+  DEM      +0.0061 mIoU  (+0.9% relative)
+
+--- standalone sufficiency (mIoU using ONLY this modality) ---
+  optical  0.6392 mIoU  (97.6% of full model)
+  SAR      0.3746 mIoU  (57.2% of full model)
+  DEM      0.2333 mIoU  (35.6% of full model)
+
+Wrote outputs/paper/modality_ablation_leakfree.json
+
+=== python scripts/cloud_curve.py --checkpoint /kaggle/input/notebooks/pr4neeth/notebook539204c56c/AETHER/checkpoints_skip/best.pt --dataset-root /kaggle/input/datasets/kirethikb/aether-real-cloud-multimodal-eo --split test --num-workers 4 --leak-free --output outputs/paper/cloud_curve_leakfree.json ===
+2026-10-25 02:09:58,491 | INFO | Loaded /kaggle/input/notebooks/pr4neeth/notebook539204c56c/AETHER/checkpoints_skip/best.pt | epoch 41 | best score 0.4367945811034744 | channels {'optical': 11, 'sar': 7, 'dem': 3}
+2026-10-25 02:09:58,650 | INFO | test: 1752 tiles / 127 locations
+2026-10-25 02:13:25,787 | INFO | cloud 0%: acc 0.8449 mIoU 0.6573 alpha[O,S,D] [0.8748, 0.0934, 0.0318] | SAR worth +0.0093 mIoU | DEM worth +0.0067 | SAR+DEM only: acc 0.6607 mIoU 0.4353
+2026-10-25 02:17:12,587 | INFO | cloud 25%: acc 0.8257 mIoU 0.6308 alpha[O,S,D] [0.8295, 0.1274, 0.0431] | SAR worth +0.0152 mIoU | DEM worth +0.0071 | SAR+DEM only: acc 0.6607 mIoU 0.4353
+2026-10-25 02:21:00,073 | INFO | cloud 50%: acc 0.8017 mIoU 0.5977 alpha[O,S,D] [0.7429, 0.193, 0.0642] | SAR worth +0.0266 mIoU | DEM worth +0.0064 | SAR+DEM only: acc 0.6607 mIoU 0.4353
+2026-10-25 02:24:45,796 | INFO | cloud 75%: acc 0.7752 mIoU 0.5604 alpha[O,S,D] [0.6049, 0.2995, 0.0956] | SAR worth +0.0423 mIoU | DEM worth +0.0093 | SAR+DEM only: acc 0.6607 mIoU 0.4353
+2026-10-25 02:28:02,690 | INFO | cloud 100%: acc 0.6607 mIoU 0.4353 alpha[O,S,D] [0.0, 0.7212, 0.2788] | SAR worth +0.2020 mIoU | DEM worth +0.0395 | SAR+DEM only: acc 0.6607 mIoU 0.4353
+2026-10-25 02:28:02,691 | INFO | Wrote outputs/paper/cloud_curve_leakfree.json
+2026-10-25 02:28:02,691 | INFO | --- acceptance ---
+2026-10-25 02:28:02,691 | INFO |   SAR ablation cost, clear sky : +0.0093 (target >= 0.03)
+2026-10-25 02:28:02,691 | INFO |   SAR ablation cost, full cloud: +0.2020 (target >= 0.20)
+2026-10-25 02:28:02,691 | INFO |   SAR+DEM only under full cloud: acc 0.6607 (target >= 0.72), mIoU 0.4353 (target >= 0.50)
+2026-10-25 02:28:02,691 | INFO |   alpha_sar clear -> full cloud : 0.0934 -> 0.7212 (target >= 2x)
+
+Done. Results:
+total 108
+drwxr-xr-x 2 root root  4096 Oct 25 02:28 .
+drwxr-xr-x 3 root root  4096 Oct 25 00:50 ..
+-rw-r--r-- 1 root root 10155 Oct 25 01:57 cloud_curve_full.json
+-rw-r--r-- 1 root root 10155 Oct 25 02:28 cloud_curve_leakfree.json
+-rw-r--r-- 1 root root 26906 Oct 25 01:30 full_evaluation_full.json
+-rw-r--r-- 1 root root 26873 Oct 25 02:02 full_evaluation_leakfree.json
+-rw-r--r-- 1 root root  2767 Oct 25 00:52 gpu_benchmark.json
+-rw-r--r-- 1 root root  3686 Oct 25 01:37 modality_ablation_full.json
+-rw-r--r-- 1 root root  3688 Oct 25 02:09 modality_ablation_leakfree.json
+-rw-r--r-- 1 root root  1267 Oct 25 01:22 thresholds_full.json
+-rw-r--r-- 1 root root  1266 Oct 25 01:24 thresholds_leakfree.json
+
+$ python scripts/user_study_tiles.py --checkpoint '/kaggle/input/notebooks/pr4neeth/notebook539204c56c/AETHER/checkpoints_skip/best.pt' --dataset-root '/kaggle/input/datasets/kirethikb/aether-real-cloud-multimodal-eo' --out outputs/paper/user_study
+2026-10-25 02:28:09,353 | INFO | Loaded /kaggle/input/notebooks/pr4neeth/notebook539204c56c/AETHER/checkpoints_skip/best.pt | epoch 41 | best score 0.4367945811034744 | channels {'optical': 11, 'sar': 7, 'dem': 3}
+{'tag': 'clear_1', 'tile': 'g_algeria_n3476_e00759_2023_r000_c000', 'pixel_acc_for_team_only': 0.9949, 'mean_alpha_O_S_D': [0.958, 0.037, 0.005]}
+{'tag': 'clear_2', 'tile': 'g_algeria_n3476_e00759_2023_r000_c001', 'pixel_acc_for_team_only': 0.9991, 'mean_alpha_O_S_D': [0.958, 0.037, 0.005]}
+{'tag': 'clear_3', 'tile': 'g_algeria_n3476_e00759_2023_r000_c002', 'pixel_acc_for_team_only': 0.951, 'mean_alpha_O_S_D': [0.966, 0.03, 0.004]}
+{'tag': 'cloudy_1', 'tile': 'c_bolivia_s1671_w05976_2022_mid_cloudy_r000_c000', 'pixel_acc_for_team_only': 0.9634, 'mean_alpha_O_S_D': [0.692, 0.258, 0.05]}
+{'tag': 'cloudy_2', 'tile': 'c_bolivia_s1671_w05976_2022_mid_cloudy_r000_c001', 'pixel_acc_for_team_only': 0.9606, 'mean_alpha_O_S_D': [0.768, 0.193, 0.039]}
+{'tag': 'cloudy_3', 'tile': 'c_bolivia_s1671_w05976_2022_mid_cloudy_r000_c002', 'pixel_acc_for_team_only': 0.9566, 'mean_alpha_O_S_D': [0.856, 0.121, 0.023]}
+Wrote 6 tiles to outputs/paper/user_study
+
+Results: ['cloud_curve_full.json', 'cloud_curve_leakfree.json', 'full_evaluation_full.json', 'full_evaluation_leakfree.json', 'gpu_benchmark.json', 'modality_ablation_full.json', 'modality_ablation_leakfree.json', 'thresholds_full.json', 'thresholds_leakfree.json', 'user_study'] | runner exit code 0
+/usr/local/lib/python3.13/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\|'
+  cells[i][c] = re.sub('\\\\\|', '|', cell)
+/usr/local/lib/python3.13/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\_'
+  text = re.sub(r'_', '\_', text) # Escape underscores in display text
+[NbConvertApp] Converting notebook __script__.ipynb to html
+[NbConvertApp] Writing 287355 bytes to __results__.html
