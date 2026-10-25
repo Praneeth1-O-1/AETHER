@@ -57,6 +57,8 @@ ABLATIONS = {
 
 from data.dataset import leak_free  # noqa: E402
 
+from utils.amp import autocast_dtype  # noqa: E402
+
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--checkpoint", type=str, default="checkpoints/best.pt")
@@ -108,7 +110,7 @@ def run_one(model, loader, device, keep, args) -> dict:
 
     for raw in loader:
         batch = to_device(raw, device)
-        with torch.autocast("cuda", dtype=torch.bfloat16, enabled=device.type == "cuda"):
+        with torch.autocast("cuda", dtype=autocast_dtype(), enabled=device.type == "cuda"):
             out = forward_ablated(model, batch, keep)
         conf.update(out["lulc"].float().argmax(1), batch["lulc"], batch["lulc"] != IGNORE_INDEX)
         road.update(out["road"], batch["road"], batch["road_mask"])

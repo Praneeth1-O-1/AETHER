@@ -70,6 +70,8 @@ ABLATIONS = {
 
 from data.dataset import leak_free  # noqa: E402
 
+from utils.amp import autocast_dtype  # noqa: E402
+
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="LULC accuracy as a function of cloud cover.")
     p.add_argument("--config", type=str, default="configs/model.yaml")
@@ -99,7 +101,7 @@ def run(model, loader, device, keep) -> dict:
         # Combine the tile's own presence (a genuinely unacquired modality) with
         # the ablation mask, so an ablation never resurrects missing data.
         presence = batch["presence"] * batch["optical"].new_tensor(keep).view(1, 3)
-        with torch.autocast("cuda", dtype=torch.bfloat16, enabled=device.type == "cuda"):
+        with torch.autocast("cuda", dtype=autocast_dtype(), enabled=device.type == "cuda"):
             out = model(batch["optical"], batch["sar"], batch["dem"], presence=presence)
         conf.update(out["lulc"].float().argmax(1), batch["lulc"], batch["lulc"] != IGNORE_INDEX)
         alpha_sum += out["alpha_maps"].float().mean(dim=(0, 2, 3))
