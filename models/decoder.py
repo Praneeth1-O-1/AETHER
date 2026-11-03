@@ -115,7 +115,7 @@ class Decoder(nn.Module):
           -> Stage 1: -> H/8,  concat skip[h8] -> 128
           -> Stage 2: -> H/4,  concat skip[h4] ->  64
           -> Stage 3: -> H/2,  concat skip[h2] ->  32
-          -> Stage 4: -> H                     -> out_channels
+          -> Stage 4: -> H,    concat skip[h1] -> out_channels
 
     Parameters
     ----------
@@ -129,11 +129,13 @@ class Decoder(nn.Module):
         SE reduction ratio at each stage (default 16).
     skip_channels : dict[str, int] or None
         Channels available at each scale, e.g. ``{"h8": 448, "h4": 224, "h2": 96}``.
+        ``"h1"`` (full resolution) is optional; without it stage 4 has no skip,
+        exactly as before it existed.
         ``None`` builds the original skip-free decoder.
     """
 
     #: Decoder stage index -> the skip scale consumed after that stage upsamples.
-    STAGE_SCALES = ("h8", "h4", "h2", None)
+    STAGE_SCALES = ("h8", "h4", "h2", "h1")
 
     def __init__(
         self,
@@ -171,7 +173,7 @@ class Decoder(nn.Module):
         f_shared : torch.Tensor
             Fused features ``(B, feature_dim, H/16, W/16)``.
         skips : dict[str, torch.Tensor] or None
-            Concatenated encoder features keyed ``"h8"``, ``"h4"``, ``"h2"``.
+            Concatenated encoder features keyed ``"h8"``, ``"h4"``, ``"h2"``, ``"h1"``.
 
         Returns
         -------
@@ -181,5 +183,5 @@ class Decoder(nn.Module):
         skips = skips or {}
         x = f_shared
         for stage, scale in zip(self.stages, self.STAGE_SCALES):
-            x = stage(x, skips.get(scale) if scale else None)
+            x = stage(x, skips.get(scale))
         return x

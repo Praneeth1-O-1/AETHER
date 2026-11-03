@@ -135,14 +135,19 @@ def fractal_cloud_mask(
 # =========================================================================
 
 
-def default_bank_path(dataset_root: Path) -> Path:
+def default_bank_path(dataset_root: Path, split_key: str = "location") -> Path:
     """Where training writes the bank and evaluation reads it back.
 
     NOT dataset_root.parent -- that's read-only when dataset_root is a mounted
     input (e.g. Kaggle's /kaggle/input/...). Lives beside the manifest cache
     under cwd, which is writable in every environment this runs in.
+
+    The bank is harvested from train locations only, so each split key gets
+    its own file: a bank cached under one split would replay masks from the
+    other split's validation and test locations.
     """
-    return Path.cwd() / ".manifest_cache" / f"cloud_masks_{Path(dataset_root).name}.npz"
+    suffix = "" if split_key == "location" else f"_{split_key}"
+    return Path.cwd() / ".manifest_cache" / f"cloud_masks_{Path(dataset_root).name}{suffix}.npz"
 
 
 class CloudMaskBank:

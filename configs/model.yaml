@@ -13,6 +13,12 @@ model:
   optical_encoder:
     in_channels: 11            # 10 usable Sentinel-2 bands + validity channel
     pretrained: true
+    backbone: convnext_tiny    # or resnet50_ssl4eo: ResNet-50 self-supervised on
+                               # 13-band Sentinel-2 (SSL4EO-S12); train.py
+                               # --optical-backbone overrides
+    full_res_channels: 0       # full-resolution skip into the last decoder
+                               # stage (needs use_skips); 0 keeps the H/2
+                               # finest scale of the epoch-41 model
     detail_channels: 48        # H/2 branch; ConvNeXt's stride-4 patchify emits
                                # nothing above H/4, and optical is the dominant
                                # modality for the ~1 px-wide road/building detail

@@ -31,7 +31,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from data.dataset import (IGNORE_INDEX, LULC_CLASS_NAMES, AETHERTileDataset,  # noqa: E402
                           build_manifest, leak_free, location_split)
-from inference import get_device, load_model, to_device  # noqa: E402
+from inference import checkpoint_split_key, get_device, load_model, to_device  # noqa: E402
 
 DW_COLORS = ["#419BDF", "#397D49", "#88B053", "#7A87C6", "#E49635",
              "#DFC35A", "#C4281B", "#A59B8F", "#B39FE1"]
@@ -74,7 +74,8 @@ def main() -> None:
 
     device = get_device("auto")
     model = load_model(args.config, args.checkpoint, device).eval()
-    train, val, test = location_split(build_manifest(Path(args.dataset_root)))
+    train, val, test = location_split(build_manifest(Path(args.dataset_root)),
+                                       key=checkpoint_split_key(args.checkpoint))
     test = sorted(leak_free(test, train, val), key=lambda r: r.path.name)
 
     def condition(r):

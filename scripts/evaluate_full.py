@@ -46,7 +46,7 @@ from data.dataset import (  # noqa: E402
     location_split,
 )
 import settings as S  # noqa: E402
-from inference import load_model, to_device  # noqa: E402
+from inference import checkpoint_split_key, load_model, to_device  # noqa: E402
 from utils.metrics import BinaryIoU, ConfusionMatrix  # noqa: E402
 
 
@@ -246,7 +246,7 @@ def main() -> None:
             f"\nERROR: No tiles found under {dataset_root}.\n"
             "  Expected layout: <root>/<aoi_name>/<tile_id>/meta.json\n"
         )
-    train, val, test = location_split(records)
+    train, val, test = location_split(records, key=checkpoint_split_key(args.checkpoint))
     chosen = {"train": train, "val": val, "test": test}[args.split]
     if args.leak_free:
         others = [s for name, s in (("train", train), ("val", val), ("test", test)) if name != args.split]

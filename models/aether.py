@@ -166,7 +166,7 @@ class AETHERModel(nn.Module):
                 scale: torch.cat(
                     [d[scale] for d in (skip_o, skip_s, skip_d) if scale in d], dim=1
                 )
-                for scale in ("h8", "h4", "h2")
+                for scale in ("h8", "h4", "h2", "h1")
                 if any(scale in d for d in (skip_o, skip_s, skip_d))
             }
             decoded = self.decoder(f_shared, merged)
@@ -257,6 +257,9 @@ class AETHERModel(nn.Module):
             feature_dim=feature_dim,
             pretrained=model_cfg.optical_encoder.pretrained,
             detail_channels=detail_channels,
+            backbone=getattr(model_cfg.optical_encoder, "backbone", "convnext_tiny"),
+            full_res_channels=(int(getattr(model_cfg.optical_encoder, "full_res_channels", 0))
+                               if use_skips else 0),
         )
         sar_encoder = SAREncoder(
             in_channels=model_cfg.sar_encoder.in_channels,
@@ -334,3 +337,21 @@ class AETHERModel(nn.Module):
             use_skips=use_skips,
             aux_heads=aux_heads,
         )
+
+
+ARCHITECTURES = ("aether", "early_fusion")
+
+
+def build_model(model_cfg: DotDict) -> nn.Module:
+    """Build whichever architecture ``model_cfg.arch`` names (default AETHER).
+
+    Checkpoints record their config, so `inference.load_model` rebuilds the
+    early-fusion baseline as readily as AETHER itself.
+    """
+    arch = model_cfg.get("arch", "aether")
+    if arch == "aether":
+        return AETHERModel.build_from_dict(model_cfg)
+    if arch == "early_fusion":
+        from models.early_fusion import EarlyFusionModel
+        return EarlyFusionModel.build_from_dict(model_cfg)
+    raise ValueError(f"Unknown architecture {arch!r}; available: {ARCHITECTURES}")

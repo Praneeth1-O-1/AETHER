@@ -40,7 +40,7 @@ from data.dataset import (
     location_split,
     year_of,
 )
-from models.aether import AETHERModel
+from models.aether import AETHERModel, build_model
 from utils.config import DotDict, load_config
 from utils.metrics import BinaryIoU, ConfusionMatrix
 
@@ -77,6 +77,16 @@ def get_device(device_str: str) -> torch.device:
     return torch.device("cpu")
 
 
+def checkpoint_split_key(checkpoint_path: str) -> str:
+    """The split a checkpoint was trained on: 'location' unless recorded otherwise.
+
+    Evaluation must rebuild the same split, or test tiles from a 'coordinate'
+    run would be scored on what were its training locations.
+    """
+    ckpt = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+    return (ckpt.get("args") or {}).get("split_key", "location")
+
+
 def load_model(config_path: str, checkpoint_path: str, device: torch.device) -> AETHERModel:
     """Rebuild the architecture recorded in the checkpoint, then load weights."""
     ckpt = torch.load(checkpoint_path, map_location=device, weights_only=False)
@@ -108,7 +118,7 @@ def load_model(config_path: str, checkpoint_path: str, device: torch.device) -> 
     cfg_model.sar_encoder.pretrained = False
     cfg_model.task_heads.lulc.num_classes = ckpt.get("num_lulc_classes", NUM_LULC_CLASSES)
 
-    model = AETHERModel.build_from_dict(cfg_model)
+    model = build_model(cfg_model)
     missing, unexpected = model.load_state_dict(ckpt["model_state_dict"], strict=False)
     if missing:
         logger.warning(f"Checkpoint is missing these modules (kept random init): {missing}")

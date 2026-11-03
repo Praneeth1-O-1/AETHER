@@ -171,3 +171,63 @@ def masked_bce_dice(
     dice = (dice * observed).sum() / observed.sum().clamp(min=1)
 
     return bce + dice_weight * dice
+
+
+def _soft_erode(img: torch.Tensor) -> torch.Tensor:
+    p1 = -F.max_pool2d(-img, (3, 1), 1, (1, 0))
+    p2 = -F.max_pool2d(-img, (1, 3), 1, (0, 1))
+    return torch.min(p1, p2)
+
+
+def _soft_dilate(img: torch.Tensor) -> torch.Tensor:
+    return F.max_pool2d(img, 3, 1, 1)
+
+
+def soft_skeleton(img: torch.Tensor, iters: int) -> torch.Tensor:
+    """Differentiable morphological skeleton of a soft mask (Shit et al., CVPR 2021)."""
+    skel = F.relu(img - _soft_dilate(_soft_erode(img)))
+    for _ in range(iters):
+        img = _soft_erode(img)
+        delta = F.relu(img - _soft_dilate(_soft_erode(img)))
+        skel = skel + F.relu(delta - skel * delta)
+    return skel
+
+
+def masked_cldice(
+    logits: torch.Tensor,
+    target: torch.Tensor,
+    mask: torch.Tensor,
+    iters: int = 10,
+    eps: float = 1.0,
+) -> torch.Tensor:
+    """Masked soft clDice loss for thin, connected structures (roads).
+
+    Dice rewards overlap, so a road predicted as disconnected blobs scores
+    almost as well as a continuous one. clDice instead compares skeletons:
+    topology precision is the share of the predicted centreline lying on true
+    road, topology sensitivity the share of the true centreline covered by the
+    prediction. A gap in a predicted road removes centreline and is penalised
+    in proportion to its length.
+
+    Scored per sample, only on tiles that contain observed road, so road-free
+    and unmapped tiles add nothing (their BCE term still applies).
+
+    Parameters
+    ----------
+    logits, target, mask : torch.Tensor
+        All ``(B, 1, H, W)``; ``mask`` is 1 where the road label is observed.
+    iters : int
+        Skeletonisation iterations; must exceed the half-width, in pixels, of
+        the widest structure. Roads here are 1-3 px wide.
+    """
+    mask = mask.float()
+    probs = torch.sigmoid(logits.float()) * mask
+    truth = target.float() * mask
+    skel_pred = soft_skeleton(probs, iters)
+    skel_true = soft_skeleton(truth, iters)
+    dims = (1, 2, 3)
+    t_prec = ((skel_pred * truth).sum(dims) + eps) / (skel_pred.sum(dims) + eps)
+    t_sens = ((skel_true * probs).sum(dims) + eps) / (skel_true.sum(dims) + eps)
+    cl_dice = 1.0 - 2.0 * t_prec * t_sens / (t_prec + t_sens)
+    has_road = (truth.sum(dims) > 0).float()
+    return (cl_dice * has_road).sum() / has_road.sum().clamp(min=1)

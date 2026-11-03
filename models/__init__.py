@@ -21,10 +21,11 @@ from models.task_heads import (
     register_task_head,
     list_task_heads,
 )
-from models.aether import AETHERModel
+from models.aether import AETHERModel, build_model
 
 __all__ = [
     "AETHERModel",
+    "build_model",
     "OpticalEncoder",
     "SAREncoder",
     "DEMEncoder",

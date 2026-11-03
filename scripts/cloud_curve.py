@@ -49,7 +49,7 @@ from data.dataset import (  # noqa: E402
     location_split,
 )
 import settings as S  # noqa: E402
-from inference import get_device, load_model, to_device  # noqa: E402
+from inference import checkpoint_split_key, get_device, load_model, to_device  # noqa: E402
 from utils.metrics import ConfusionMatrix  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
@@ -133,7 +133,9 @@ def main() -> None:
             f"  If running on Kaggle, specify: --dataset-root /kaggle/input/aether-real-cloud-multimodal-eo"
         )
     records = build_manifest(dataset_root)
-    train_rec, val_rec, test_rec = location_split(records, args.val_frac, args.test_frac)
+    split_key = checkpoint_split_key(args.checkpoint)
+    train_rec, val_rec, test_rec = location_split(records, args.val_frac, args.test_frac,
+                                                  key=split_key)
     chosen = {"val": val_rec, "test": test_rec}[args.split]
     if args.leak_free:
         chosen = leak_free(chosen, train_rec, val_rec if args.split == "test" else test_rec)
@@ -141,7 +143,7 @@ def main() -> None:
 
     # Same bank the training run used, so injected cloud looks the same at
     # evaluation time as it did during training.
-    bank_path = default_bank_path(args.dataset_root)
+    bank_path = default_bank_path(args.dataset_root, split_key)
     bank = CloudMaskBank.load(bank_path) if bank_path.exists() else None
     if bank is None:
         logger.warning(f"No cloud mask bank at {bank_path}; using fractal masks only.")

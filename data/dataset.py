@@ -303,14 +303,26 @@ def _bucket(location: str, n_buckets: int = 1000) -> int:
     return int(h[:8], 16) % n_buckets
 
 
+SPLIT_KEYS = ("location", "coordinate")
+
+
 def location_split(
     records: list[TileRecord], val_frac: float = 0.10, test_frac: float = 0.10,
+    key: str = "location",
 ) -> tuple[list[TileRecord], list[TileRecord], list[TileRecord]]:
     """Hold out whole geographic locations (every year and every sub-tile).
 
     Assignment is by stable hash of the location string, so the split is
     reproducible without seeding and stays fixed if tiles are added later.
+
+    ``key="location"`` hashes the full location key and reproduces the split
+    every checkpoint up to epoch 41 was trained on, including its leak (see
+    `leak_free`). ``key="coordinate"`` hashes the coordinate token instead, so
+    a standard tile and its cloud variants at the same ground always share a
+    split. It is a different split, not a patched one: train on it from scratch.
     """
+    if key not in SPLIT_KEYS:
+        raise ValueError(f"split key must be one of {SPLIT_KEYS}, got {key!r}")
     if not 0 <= val_frac + test_frac < 1:
         raise ValueError(f"val_frac + test_frac must be in [0, 1), got {val_frac + test_frac}")
 
@@ -319,7 +331,7 @@ def location_split(
 
     train, val, test = [], [], []
     for r in records:
-        b = _bucket(r.location)
+        b = _bucket(coordinate_of(r.location) if key == "coordinate" else r.location)
         if b < test_cut:
             test.append(r)
         elif b < val_cut:
@@ -354,6 +366,69 @@ def leak_free(eval_records: list[TileRecord],
     """
     seen = {coordinate_of(r.location) for split in other_splits for r in split}
     return [r for r in eval_records if coordinate_of(r.location) not in seen]
+
+
+# =========================================================================
+# Class balance
+# =========================================================================
+
+
+def _lulc_counts(path: Path) -> list[int]:
+    """Labelled-pixel count per LULC class for one tile."""
+    with rasterio.open(path / "labels.tif") as src:
+        band = list(src.descriptions).index("lulc") + 1
+        lulc = src.read(band).astype(np.float32)
+    lulc = lulc[np.isfinite(lulc)].round().astype(np.int64)
+    lulc = lulc[(lulc >= 0) & (lulc < NUM_LULC_CLASSES)]
+    return np.bincount(lulc, minlength=NUM_LULC_CLASSES).tolist()
+
+
+def class_histograms(records: list[TileRecord], dataset_root: Path,
+                     cache: Path | None = None, workers: int = 4) -> dict[str, list[int]]:
+    """Per-tile LULC pixel counts, keyed by tile path relative to the root.
+
+    Reading every labels.tif over a mounted input is slow, so counts are cached
+    and only tiles missing from the cache are read.
+    """
+    dataset_root = Path(dataset_root)
+    if cache is None:
+        cache = Path.cwd() / ".manifest_cache" / f"class_hist_{dataset_root.name}.json"
+    cache = Path(cache)
+    hist: dict[str, list[int]] = json.loads(cache.read_text()) if cache.exists() else {}
+    todo = [r for r in records if str(r.path.relative_to(dataset_root)) not in hist]
+    if todo:
+        logger.info(f"Counting LULC classes in {len(todo)} tiles ({len(hist)} cached)")
+        from multiprocessing import Pool
+        with Pool(workers) as pool:
+            counts = pool.map(_lulc_counts, [r.path for r in todo], chunksize=16)
+        for r, c in zip(todo, counts):
+            hist[str(r.path.relative_to(dataset_root))] = c
+        cache.parent.mkdir(parents=True, exist_ok=True)
+        cache.write_text(json.dumps(hist))
+    return hist
+
+
+def repeat_factors(records: list[TileRecord], hist: dict[str, list[int]], dataset_root: Path,
+                   threshold: float, min_share: float = 0.01) -> np.ndarray:
+    """Repeat-factor sampling weights (Gupta et al., LVIS, CVPR 2019).
+
+    A class counts as present in a tile when it covers at least ``min_share``
+    of the tile's labelled pixels. With f_c the fraction of tiles where class c
+    is present, r_c = max(1, sqrt(threshold / f_c)), and a tile is drawn in
+    proportion to the largest r_c among its classes. Tiles holding a rare
+    class (flooded vegetation, snow) are then seen more often, while common
+    classes keep weight 1.
+    """
+    dataset_root = Path(dataset_root)
+    counts = np.array([hist[str(r.path.relative_to(dataset_root))] for r in records], dtype=np.float64)
+    labelled = counts.sum(axis=1, keepdims=True)
+    present = (counts >= min_share * np.maximum(labelled, 1)) & (counts > 0)
+    freq = present.mean(axis=0)
+    r_class = np.where(freq > 0, np.maximum(1.0, np.sqrt(threshold / np.maximum(freq, 1e-12))), 1.0)
+    weights = np.where(present, r_class[None, :], 1.0).max(axis=1)
+    logger.info("Repeat factors per class: " + ", ".join(
+        f"{n} {r:.2f} (in {f:.1%} of tiles)" for n, r, f in zip(LULC_CLASS_NAMES, r_class, freq)))
+    return weights
 
 
 # =========================================================================
@@ -404,6 +479,7 @@ class AETHERTileDataset(Dataset):
         cloud_injector: CloudInjector | None = None,
         drop_probs: tuple[float, float, float] | None = None,
         deterministic_drop: bool = False,
+        allowed: tuple[bool, bool, bool] = (True, True, True),
     ):
         """
         Parameters
@@ -415,12 +491,17 @@ class AETHERTileDataset(Dataset):
             independently. ``None`` disables dropout.
         deterministic_drop : bool
             Seed dropout by tile index. Evaluation only.
+        allowed : tuple of bool
+            ``(optical, sar, dem)`` modalities the model may ever see. A
+            disallowed modality is always absent, in training and evaluation
+            alike, which is how the single-sensor baselines are trained.
         """
         self.records = list(records)
         self.augment = augment
         self.cloud_injector = cloud_injector
         self.drop_probs = drop_probs
         self.deterministic_drop = deterministic_drop
+        self.allowed = np.asarray(allowed, dtype=np.float32)
 
     def __len__(self) -> int:
         return len(self.records)
@@ -524,6 +605,7 @@ class AETHERTileDataset(Dataset):
             presence[1] = 0.0
         if not np.any(dem[-1]):
             presence[2] = 0.0
+        presence *= self.allowed
 
         if self.drop_probs is not None:
             rng = np.random.default_rng() if not self.deterministic_drop else \

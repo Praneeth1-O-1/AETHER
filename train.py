@@ -35,7 +35,7 @@ from pathlib import Path
 import torch
 import torch.nn as nn
 from torch.optim import AdamW
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, WeightedRandomSampler
 
 from data.clouds import (
     CloudConfig, CloudInjector, CloudMaskBank, curriculum_coverage, default_bank_path,
@@ -47,17 +47,24 @@ from data.dataset import (
     NUM_LULC_CLASSES,
     OPTICAL_CHANNELS,
     SAR_CHANNELS,
+    MODALITIES,
+    SPLIT_KEYS,
     AETHERTileDataset,
     build_manifest,
+    class_histograms,
     location_split,
+    repeat_factors,
 )
-from models.aether import AETHERModel
+from models.aether import ARCHITECTURES, build_model as build_architecture
 from models.losses import (
     alpha_entropy_penalty,
     masked_bce_dice,
+    masked_cldice,
     masked_cross_entropy,
     presence_masked_cross_entropy,
 )
+from models.optical_encoder import BACKBONES
+from utils.amp import autocast_dtype
 from utils.config import load_config
 from utils.metrics import BinaryIoU, ConfusionMatrix
 
@@ -71,7 +78,7 @@ LULC_CLASS_WEIGHTS = [0.819, 0.3715, 1.0373, 1.8884, 0.638, 0.5889, 0.819, 0.732
 ROAD_POS_WEIGHT = 5.09
 BUILDING_POS_WEIGHT = 8.35
 
-AMP_DTYPES = {"bf16": torch.bfloat16, "fp16": torch.float16, "off": None}
+AMP_DTYPES = {"auto": "auto", "bf16": torch.bfloat16, "fp16": torch.float16, "off": None}
 
 
 def parse_args() -> argparse.Namespace:
@@ -80,6 +87,21 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--dataset-root", type=str, default="data/strict")
     p.add_argument("--val-frac", type=float, default=0.10)
     p.add_argument("--test-frac", type=float, default=0.10)
+    p.add_argument("--split-key", choices=SPLIT_KEYS, default="location",
+                   help="'location' reproduces the split of the epoch-41 checkpoint (which "
+                        "leaks 17 coordinates across splits); 'coordinate' is leak-free.")
+
+    # --- Architecture -------------------------------------------------------
+    p.add_argument("--arch", choices=ARCHITECTURES, default="aether",
+                   help="'early_fusion' trains the stacked-input baseline.")
+    p.add_argument("--optical-backbone", choices=BACKBONES, default=None,
+                   help="Override the config's optical backbone.")
+    p.add_argument("--full-res-channels", type=int, default=None,
+                   help="Width of the full-resolution optical skip (0 disables). "
+                        "Overrides the config.")
+    p.add_argument("--modalities", type=str, default="optical,sar,dem",
+                   help="Sensors the model may ever see. Others are always absent, in "
+                        "training and validation; e.g. 'optical' for the optical-only baseline.")
 
     p.add_argument("--epochs", type=int, default=40)
     p.add_argument("--batch-size", type=int, default=8)
@@ -137,12 +159,20 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--road-weight", type=float, default=0.5)
     p.add_argument("--building-weight", type=float, default=0.5)
     p.add_argument("--dice-weight", type=float, default=1.0)
+    p.add_argument("--road-cldice-weight", type=float, default=0.0,
+                   help="Weight of the clDice connectivity term on the road head. 0 disables.")
+    p.add_argument("--cldice-iters", type=int, default=10)
+    p.add_argument("--rfs-threshold", type=float, default=0.0,
+                   help="Repeat-factor sampling threshold: tiles holding a class present in "
+                        "fewer than this fraction of tiles are drawn more often. 0 disables.")
 
-    p.add_argument("--amp", choices=list(AMP_DTYPES), default="bf16")
+    p.add_argument("--amp", choices=list(AMP_DTYPES), default="auto",
+                   help="'auto' picks bf16 on GPUs with native support, else fp16 (T4).")
     p.add_argument("--checkpoint-dir", type=str, default="checkpoints")
     p.add_argument("--device", type=str, default="auto")
     p.add_argument("--resume", type=str, default=None)
     p.add_argument("--limit-train", type=int, default=0, help="Debug: cap train tiles.")
+    p.add_argument("--limit-val", type=int, default=0, help="Debug: cap validation tiles.")
     return p.parse_args()
 
 
@@ -170,13 +200,16 @@ def build_loaders(args) -> tuple[DataLoader, dict[str, DataLoader]]:
     which is the entire distinction this project exists to make.
     """
     records = build_manifest(Path(args.dataset_root))
-    train_rec, val_rec, test_rec = location_split(records, args.val_frac, args.test_frac)
+    train_rec, val_rec, test_rec = location_split(records, args.val_frac, args.test_frac,
+                                                  key=args.split_key)
     # Harvest cloud masks from the FULL train split before --limit-train slices
     # it: the bank is cached to disk, and a debug run must not leave a
     # 14-mask cache behind for the next real run to silently reuse.
     bank_rec = train_rec
     if args.limit_train:
         train_rec = train_rec[: args.limit_train]
+    if args.limit_val:
+        val_rec = val_rec[: args.limit_val]
 
     n_loc = lambda rs: len({r.location for r in rs})  # noqa: E731
     logger.info(
@@ -190,7 +223,7 @@ def build_loaders(args) -> tuple[DataLoader, dict[str, DataLoader]]:
     bank = None
     if args.cloud_prob > 0:
         bank = CloudMaskBank.build(
-            bank_rec, cache=default_bank_path(args.dataset_root),
+            bank_rec, cache=default_bank_path(args.dataset_root, args.split_key),
         )
 
     train_cloud = CloudInjector(
@@ -208,12 +241,24 @@ def build_loaders(args) -> tuple[DataLoader, dict[str, DataLoader]]:
         pin_memory=True,
         prefetch_factor=4 if args.num_workers > 0 else None,
     )
+    allowed = modalities_allowed(args.modalities)
+    sampler = None
+    if args.rfs_threshold > 0:
+        hist = class_histograms(train_rec, Path(args.dataset_root), workers=max(1, args.num_workers))
+        weights = repeat_factors(train_rec, hist, Path(args.dataset_root), args.rfs_threshold)
+        logger.info(f"Repeat-factor sampling: mean factor {weights.mean():.2f}, "
+                    f"{(weights > 1).mean():.1%} of tiles upweighted")
+        # Same number of draws per epoch as before, so epoch-based schedules
+        # (cloud curriculum, entropy anneal) keep their meaning.
+        sampler = WeightedRandomSampler(torch.as_tensor(weights, dtype=torch.double),
+                                        num_samples=len(train_rec), replacement=True)
     train_loader = DataLoader(
         AETHERTileDataset(
             train_rec, augment=True, cloud_injector=train_cloud,
             drop_probs=(args.drop_optical, args.drop_sar, args.drop_dem),
+            allowed=allowed,
         ),
-        batch_size=args.batch_size, shuffle=True, drop_last=True,
+        batch_size=args.batch_size, shuffle=sampler is None, sampler=sampler, drop_last=True,
         # NOT persistent: the cloud curriculum mutates the injector between
         # epochs, and persistent workers hold a stale copy of the dataset.
         persistent_workers=False, **common,
@@ -228,7 +273,7 @@ def build_loaders(args) -> tuple[DataLoader, dict[str, DataLoader]]:
                 bank,
             )
         return DataLoader(
-            AETHERTileDataset(val_rec, augment=False, cloud_injector=injector),
+            AETHERTileDataset(val_rec, augment=False, cloud_injector=injector, allowed=allowed),
             batch_size=args.batch_size, shuffle=False, drop_last=False,
             persistent_workers=args.num_workers > 0, **common,
         )
@@ -240,15 +285,28 @@ def build_loaders(args) -> tuple[DataLoader, dict[str, DataLoader]]:
     return train_loader, val_loaders
 
 
-def build_model(args, device: torch.device) -> AETHERModel:
+def modalities_allowed(spec: str) -> tuple[bool, bool, bool]:
+    names = {m.strip() for m in spec.split(",") if m.strip()}
+    unknown = names - set(MODALITIES)
+    if unknown or not names:
+        raise ValueError(f"--modalities must list some of {MODALITIES}, got {spec!r}")
+    return tuple(m in names for m in MODALITIES)
+
+
+def build_model(args, device: torch.device) -> torch.nn.Module:
     cfg = load_config(args.config)
+    cfg.model.arch = args.arch
+    if args.optical_backbone:
+        cfg.model.optical_encoder.backbone = args.optical_backbone
+    if args.full_res_channels is not None:
+        cfg.model.optical_encoder.full_res_channels = args.full_res_channels
     cfg.model.optical_encoder.in_channels = OPTICAL_CHANNELS
     cfg.model.sar_encoder.in_channels = SAR_CHANNELS
     cfg.model.dem_encoder.in_channels = DEM_CHANNELS
     cfg.model.optical_encoder.pretrained = args.pretrained
     cfg.model.sar_encoder.pretrained = args.pretrained
     cfg.model.task_heads.lulc.num_classes = NUM_LULC_CLASSES
-    cfg.model.use_aux_heads = args.aux_weight > 0
+    cfg.model.use_aux_heads = args.aux_weight > 0 and args.arch == "aether"
 
     # Drop unselected heads entirely rather than zero-weighting them: an unbuilt
     # head contributes no gradient to the shared trunk at all, which is the point
@@ -262,8 +320,11 @@ def build_model(args, device: torch.device) -> AETHERModel:
             del cfg.model.task_heads[name]
     logger.info(f"Active task heads: {sorted(active)}")
 
-    model = AETHERModel.build_from_dict(cfg.model).to(device, memory_format=torch.channels_last)
+    model = build_architecture(cfg.model).to(device, memory_format=torch.channels_last)
     total = sum(p.numel() for p in model.parameters())
+    logger.info(f"Model: {args.arch}, optical backbone "
+                f"{cfg.model.optical_encoder.get('backbone', 'convnext_tiny')}, "
+                f"full-res skip {cfg.model.optical_encoder.get('full_res_channels', 0)} ch")
     logger.info(f"Model: {total:,} parameters | inputs O{OPTICAL_CHANNELS} S{SAR_CHANNELS} D{DEM_CHANNELS} "
                 f"| skips {'ON' if model.use_skips else 'off'} "
                 f"| decoder out {cfg.model.decoder.out_channels}")
@@ -272,7 +333,7 @@ def build_model(args, device: torch.device) -> AETHERModel:
     return model
 
 
-def build_optimizer(model: AETHERModel, args) -> AdamW:
+def build_optimizer(model: torch.nn.Module, args) -> AdamW:
     """Pretrained backbones get a much lower LR than the fresh modules, so
     fine-tuning does not wash out ImageNet features before the randomly
     initialized fusion/decoder/heads have caught up."""
@@ -316,6 +377,10 @@ def compute_losses(outputs, batch, criterion_state, args):
         outputs["road"], batch["road"], batch["road_mask"],
         pos_weight=criterion_state["road_pos"], dice_weight=args.dice_weight,
     )
+    if "road" in outputs and args.road_cldice_weight > 0:
+        loss_road = loss_road + args.road_cldice_weight * masked_cldice(
+            outputs["road"], batch["road"], batch["road_mask"], iters=args.cldice_iters,
+        )
     loss_building = zero if "building" not in outputs else masked_bce_dice(
         outputs["building"], batch["building"], batch["building_mask"],
         pos_weight=criterion_state["building_pos"], dice_weight=args.dice_weight,
@@ -584,11 +649,13 @@ def main() -> None:
     args = parse_args()
     device = get_device(args.device)
     amp_dtype = AMP_DTYPES[args.amp] if device.type == "cuda" else None
+    if amp_dtype == "auto":
+        amp_dtype = autocast_dtype()
     if device.type == "cuda":
         torch.backends.cudnn.benchmark = True
         torch.backends.cuda.matmul.allow_tf32 = True
         torch.backends.cudnn.allow_tf32 = True
-    logger.info(f"Device: {device} | AMP: {args.amp if amp_dtype else 'off'}")
+    logger.info(f"Device: {device} | AMP: {amp_dtype if amp_dtype else 'off'}")
 
     train_loader, val_loaders = build_loaders(args)
     model = build_model(args, device)
@@ -597,7 +664,7 @@ def main() -> None:
     steps_per_epoch = max(1, len(train_loader) // args.accum_steps)
     scheduler = build_scheduler(optimizer, steps_per_epoch * args.epochs, args.warmup_frac)
     # GradScaler is a no-op for bf16/off; keeping it unconditional keeps one code path.
-    scaler = torch.amp.GradScaler("cuda", enabled=(args.amp == "fp16" and device.type == "cuda"))
+    scaler = torch.amp.GradScaler("cuda", enabled=(amp_dtype == torch.float16))
 
     criterion_state = {
         "lulc_weights": torch.tensor(LULC_CLASS_WEIGHTS, device=device),
@@ -665,6 +732,8 @@ def main() -> None:
             f"bld_IoU {val['building_iou']:.3f} (P{val['building_p']:.2f}/R{val['building_r']:.2f}) "
             f"score {score:.4f} | alpha[O,S,D] {[round(a, 3) for a in val['alpha']]}"
         )
+        if device.type == "cuda":
+            logger.info(f"  peak GPU memory {torch.cuda.max_memory_allocated() / 2**30:.2f} GiB")
         if aux_str:
             logger.info(f"  aux loss: {aux_str} | ogm k: "
                         f"{ {k: round(v, 3) for k, v in tr['ogm'].items()} }")

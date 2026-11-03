@@ -43,7 +43,7 @@ from data.dataset import (  # noqa: E402
     location_split,
 )
 import settings as S  # noqa: E402
-from inference import load_model, to_device  # noqa: E402
+from inference import checkpoint_split_key, load_model, to_device  # noqa: E402
 from utils.metrics import ConfusionMatrix  # noqa: E402
 
 
@@ -151,7 +151,7 @@ def main() -> None:
             f"  If running on Kaggle, specify: --dataset-root /kaggle/input/aether-real-cloud-multimodal-eo"
         )
     records = build_manifest(dataset_root)
-    train_rec, val_rec, test_rec = location_split(records)
+    train_rec, val_rec, test_rec = location_split(records, key=checkpoint_split_key(args.checkpoint))
     if args.leak_free:
         test_rec = leak_free(test_rec, train_rec, val_rec)
 
